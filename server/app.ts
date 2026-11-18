@@ -16,7 +16,8 @@ export async function initializeStripeIntegration() {
       ?? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : undefined);
     if (!base) throw new Error("PUBLIC_URL is required for Stripe webhooks");
     await sync.findOrCreateManagedWebhook(`${base}/api/stripe/webhook`);
-    void sync.syncBackfill({ object: "all" }).catch(error => console.error("Stripe sync backfill failed:", error));
+    // Full backfills are too heavy for short-lived serverless instances.
+    if (!process.env.VERCEL) void sync.syncBackfill({ object: "all" }).catch(error => console.error("Stripe sync backfill failed:", error));
   } catch (error) {
     console.error("Stripe webhook setup failed; storefront is online but payment notifications may be unavailable:", error);
   }
@@ -76,6 +77,8 @@ export function createApp() {
       res.status(status).json({ message: err.message || "Internal Server Error" });
       console.error(err);
     });
+    // Serverless hosts never call listen(), so register the Stripe webhook here.
+    if (process.env.VERCEL && process.env.PUBLIC_URL) await initializeStripeIntegration();
     return server;
   })();
   return ready;
