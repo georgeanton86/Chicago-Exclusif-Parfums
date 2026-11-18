@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http";
-import { getStripeClient } from "../../server/stripeClient";
-import { reconcileExpiredReservations } from "../../server/payments";
+import { getStripeClient } from "../server/stripeClient";
+import { reconcileExpiredReservations } from "../server/payments";
 
 // Backstop for the in-process timer used elsewhere: release expired checkout holds.
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
