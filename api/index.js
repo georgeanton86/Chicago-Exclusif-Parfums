@@ -1,8 +1,8 @@
 import { createRequire as __cr } from 'module'; const require = __cr(import.meta.url);
 
 // server/app.ts
-import express3 from "express";
-import path2 from "path";
+import express2 from "express";
+import path from "path";
 
 // server/routes.ts
 import { createServer } from "http";
@@ -1153,48 +1153,7 @@ async function registerRoutes(app2) {
   return httpServer;
 }
 
-// server/vite.ts
-import express from "express";
-import { createServer as createViteServer, createLogger } from "vite";
-
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-var vite_config_default = defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...process.env.NODE_ENV !== "production" && process.env.REPL_ID !== void 0 ? [
-      await import("@replit/vite-plugin-cartographer").then(
-        (m) => m.cartographer()
-      )
-    ] : []
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets")
-    }
-  },
-  root: path.resolve(import.meta.dirname, "client"),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true
-  },
-  server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"]
-    }
-  }
-});
-
-// server/vite.ts
-import { nanoid } from "nanoid";
-var viteLogger = createLogger();
+// server/log.ts
 function log(message, source = "express") {
   const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -1209,9 +1168,9 @@ function log(message, source = "express") {
 import { runMigrations } from "stripe-replit-sync";
 
 // server/stripeWebhook.ts
-import express2 from "express";
+import express from "express";
 function registerStripeWebhook(app2, { getSync, getClient } = { getSync: getStripeSync, getClient: getStripeClient }) {
-  app2.post("/api/stripe/webhook", express2.raw({ type: "application/json" }), async (req, res) => {
+  app2.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     const signature = req.headers["stripe-signature"];
     if (!signature || typeof signature !== "string" || !Buffer.isBuffer(req.body))
       return res.status(400).json({ message: "Invalid webhook" });
@@ -1231,7 +1190,7 @@ function registerStripeWebhook(app2, { getSync, getClient } = { getSync: getStri
 }
 
 // server/app.ts
-var app = express3();
+var app = express2();
 async function initializeStripeIntegration() {
   try {
     const sync = await getStripeSync();
@@ -1244,9 +1203,9 @@ async function initializeStripeIntegration() {
   }
 }
 registerStripeWebhook(app);
-app.use(express3.json());
-app.use(express3.urlencoded({ extended: false }));
-app.use("/assets", express3.static(path2.resolve(import.meta.dirname, "..", "attached_assets")));
+app.use(express2.json());
+app.use(express2.urlencoded({ extended: false }));
+app.use("/assets", express2.static(path.resolve(import.meta.dirname, "..", "attached_assets")));
 app.use((req, res, next) => {
   const start = Date.now();
   const reqPath = req.path;
