@@ -218,7 +218,23 @@ var rvltnOffers = [
     topNotes: "Bergamot \xB7 Mandarin Orange \xB7 Grapefruit \xB7 Lemon \xB7 Sea Salt \xB7 Fruity Notes \xB7 Aromatic Herbs \xB7 Pink Pepper",
     middleNotes: "Iris \xB7 Jasmine \xB7 Rose \xB7 Geranium \xB7 Lavender \xB7 Neroli \xB7 Marine Notes \xB7 Spices",
     baseNotes: "Oud \xB7 Sandalwood \xB7 Cedarwood \xB7 Musk \xB7 Ambergris \xB7 Patchouli \xB7 Frankincense \xB7 Guaiac Wood \xB7 Saffron \xB7 Nutmeg"
-  }
+  },
+  ...[
+    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.png", "The next chapter of Green Monster."],
+    ["electron", "ELECTRON", "/assets/quantum/electron.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["neutron", "NEUTRON", "/assets/quantum/neutron.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["proton", "PROTON", "/assets/quantum/proton.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["dark-matter", "DARK MATTER", "/assets/quantum/dark-matter.jpg", "Quantum Series. Scent notes have not yet been published."]
+  ].map(([slug, name, file, description]) => ({
+    slug,
+    name,
+    status: "backorder",
+    imageUrl: file,
+    description,
+    topNotes: "",
+    middleNotes: "",
+    baseNotes: ""
+  }))
 ].map((offer, index) => ({
   ...offer,
   productId: `84ac0000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`

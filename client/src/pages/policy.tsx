@@ -24,7 +24,7 @@ export default function Policy() {
                 <div className="border-y border-border py-6">
                   <h3 className="mb-3 font-semibold text-lg">BACKORDERS / PAID WAITLIST</h3>
                   <p>{preorderTerms}</p>
-                  <p className="mt-3">Sleep Paralysis, Green Monster and Duality are backorders. PREX2026 is an available-stock limited release with 500 mL total inventory shared across sizes. Orders containing backorders, including mixed orders with PREX2026, ship together when all items are ready. No delivery date is promised.</p>
+                  <p className="mt-3">Sleep Paralysis, Green Monster, Duality and the Quantum Series (Green Monster 2.0, Electron, Neutron, Proton and Dark Matter) are backorders. PREX2026 is an available-stock limited release with 500 mL total inventory shared across sizes. Orders containing backorders, including mixed orders with PREX2026, ship together when all items are ready. No delivery date is promised.</p>
                   <p className="mt-3">Sizes are 5, 10, 20 and 30 mL decants. Fragrance artwork is displayed unchanged and does not represent the decant bottle supplied. Dreamer remains a sold-out archive.</p>
                   <p className="mt-3 font-semibold">Nothing in these terms limits refunds, cancellation rights or other remedies required by applicable law.</p>
                 </div>

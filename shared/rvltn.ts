@@ -34,6 +34,16 @@ export const rvltnOffers = [
     middleNotes: "Iris · Jasmine · Rose · Geranium · Lavender · Neroli · Marine Notes · Spices",
     baseNotes: "Oud · Sandalwood · Cedarwood · Musk · Ambergris · Patchouli · Frankincense · Guaiac Wood · Saffron · Nutmeg",
   },
+  ...[
+    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.png", "The next chapter of Green Monster."],
+    ["electron", "ELECTRON", "/assets/quantum/electron.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["neutron", "NEUTRON", "/assets/quantum/neutron.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["proton", "PROTON", "/assets/quantum/proton.jpg", "Quantum Series. Scent notes have not yet been published."],
+    ["dark-matter", "DARK MATTER", "/assets/quantum/dark-matter.jpg", "Quantum Series. Scent notes have not yet been published."],
+  ].map(([slug, name, file, description]) => ({
+    slug, name, status: "backorder" as const, imageUrl: file, description,
+    topNotes: "", middleNotes: "", baseNotes: "",
+  })),
 ].map((offer, index) => ({
   ...offer, productId: `84ac0000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
 }));
