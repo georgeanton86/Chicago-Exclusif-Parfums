@@ -1,0 +1,11 @@
+{
+  "buildCommand": "vite build && node scripts/copy-assets.mjs",
+  "outputDirectory": "dist/public",
+  "functions": { "api/index.ts": { "maxDuration": 30 }, "api/cron/reconcile.ts": { "maxDuration": 30 } },
+  "rewrites": [
+    { "source": "/api/cron/reconcile", "destination": "/api/cron/reconcile" },
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ],
+  "crons": [{ "path": "/api/cron/reconcile", "schedule": "0 6 * * *" }]
+}
