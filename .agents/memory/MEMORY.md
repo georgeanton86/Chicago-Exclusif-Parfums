@@ -1,0 +1,12 @@
+- [Stripe connector credentials](stripe-connector-credentials.md) — the connected Stripe proxy may not expose SDK credentials; do not assume its settings contain a secret key.
+- [Gaming bottle imagery](gaming-bottle-imagery.md) — preserve the supplied label artwork from real photos when polishing product imagery; keep decant packaging distinct.
+- [Checkout draft privacy](checkout-draft-privacy.md) — keep resumable buyer details tab-scoped and tied to the pending purchase; never reuse them for a new purchase by default.
+- [Scarcity messaging](scarcity-messaging.md) — show actual remaining stock and distinguish unavailable sizes from sold-out inventory; never invent sales.
+- [Fragrance provenance](tdg-product-identity.md) — preserve historical provenance and keep blend formulas private; current RVLTN storefront scope is in replit.md.
+- [Image download runtime](image-download-runtime.md) — impure fetch works, but AbortSignal is unavailable; do not mistake a missing global for failed image sources.
+- [Checkout availability checks](checkout-availability.md) — stock preflight must recognize the same purchase's unexpired hold without making other held or paid stock available.
+- [Browser payment isolation](browser-payment-isolation.md) — changing-stock regression tests stop before Stripe Elements and must never use live payment services.
+- [Trial purchase promotions](trial-purchase-promotions.md) — temporary discounts are intended for the owner's trial purchase, then disabled.
+- [Decant volume pricing](decant-pricing.md) — TDG dupes and Dreamer use a graduated 5–30 mL ladder; preserve variant IDs and the fixed-size Gaming exception.
+- [Production database unpause](production-database-unpause.md) — after billing is restored, production may still need a manual unpause; rely on Support's incident guidance.
+- [Storefront theme](storefront-theme.md) — retain the dark Chicago Exclusif atmosphere when updating RVLTN branding or artwork.

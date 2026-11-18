@@ -1,0 +1,256 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { createHash } from "crypto";
+import { storage } from "./storage";
+import { z } from "zod";
+import { getStripeClient, getStripePublishableKey } from "./stripeClient";
+import { CheckoutConflict, getOrCreateChicagoIntent, getPaidQuantities, getUnavailableQuantities, priceCart,
+  recordPaidOrder, reserveChicagoCheckout } from "./payments";
+import { isChicagoVariant } from "@shared/chicago";
+import { parsePromoCodes } from "@shared/promotions";
+import { availableVariant, isPreorderVariant, preorderTerms, preorderTermsVersion } from "@shared/rvltn";
+
+const checkoutSchema = z.object({
+  checkoutKey: z.string().uuid(),
+  items: z.array(z.object({
+    variantId: z.string().min(1),
+    quantity: z.number().int().min(1).max(100),
+  })).min(1).max(30).refine(
+    items => new Set(items.map(item => item.variantId)).size === items.length,
+    "Duplicate items are not allowed",
+  ),
+  promoCode: z.string().max(40).optional().nullable(),
+  customerEmail: z.string().email().max(254),
+  customerName: z.string().trim().min(1).max(100),
+  policyAcknowledged: z.literal(true),
+  decantAcknowledged: z.boolean().optional(),
+  preorderAcknowledged: z.boolean().optional(),
+  address: z.object({
+    line1: z.string().trim().min(1).max(200),
+    line2: z.string().trim().max(200).optional(),
+    city: z.string().trim().min(1).max(100),
+    state: z.string().trim().min(1).max(100),
+    postal_code: z.string().trim().min(1).max(30),
+    country: z.literal("US"),
+  }),
+});
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Get all products (base fragrances)
+  app.get("/api/products", async (req, res) => {
+    try {
+      const allProducts = (await storage.getAllProducts()).filter(product => product.isActive);
+      res.json(allProducts);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching products: " + error.message });
+    }
+  });
+
+  // Get the first currently purchasable product, never an archived collection.
+  app.get("/api/product", async (req, res) => {
+    try {
+      const allProducts = (await storage.getAllProducts()).filter(product => product.isActive);
+      if (allProducts.length === 0) {
+        return res.status(404).json({ message: "No products available" });
+      }
+      res.json(allProducts[0]);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching product: " + error.message });
+    }
+  });
+
+  // Get single product by ID
+  app.get("/api/product/:id", async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product?.isActive) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching product: " + error.message });
+    }
+  });
+
+  // Get all product variants
+  app.get("/api/product-variants", async (req, res) => {
+    try {
+      res.set("Cache-Control", "no-store");
+      const allVariants = (await storage.getAllProductVariants()).filter(variant => variant.isActive);
+      const paid = await getPaidQuantities();
+      const unavailable = await getUnavailableQuantities();
+      res.json(allVariants.map(v => ({
+        ...availableVariant(v, unavailable),
+        soldCount: v.soldCount + (paid.get(v.id) ?? 0),
+      })));
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching product variants: " + error.message });
+    }
+  });
+
+  // A checkout retry may use its own unexpired hold, but never another
+  // purchase's hold or already-paid stock. This is advisory; payment creation
+  // still enforces inventory under the database lock.
+  app.get("/api/checkout-availability/:checkoutKey", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const key = z.string().uuid().safeParse(req.params.checkoutKey);
+    if (!key.success) return res.status(400).json({ message: "Invalid checkout key" });
+    try {
+      const variants = (await storage.getAllProductVariants()).filter(variant => variant.isActive);
+      const unavailable = await getUnavailableQuantities(key.data);
+      res.json(variants.map(variant => ({
+        ...availableVariant(variant, unavailable),
+      })));
+    } catch {
+      res.status(503).json({ message: "Could not check stock. Please try again." });
+    }
+  });
+
+  // Get variants for a specific product
+  app.get("/api/product-variants/:productId", async (req, res) => {
+    try {
+      const variants = (await storage.getProductVariants(req.params.productId)).filter(variant => variant.isActive);
+      const paid = await getPaidQuantities();
+      const unavailable = await getUnavailableQuantities();
+      res.json(variants.map(v => ({
+        ...availableVariant(v, unavailable),
+        soldCount: v.soldCount + (paid.get(v.id) ?? 0),
+      })));
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching product variants: " + error.message });
+    }
+  });
+
+  // Get single variant by ID
+  app.get("/api/variant/:id", async (req, res) => {
+    try {
+      const variant = await storage.getProductVariant(req.params.id);
+      if (!variant?.isActive) {
+        return res.status(404).json({ message: "Product variant not found" });
+      }
+      const paid = await getPaidQuantities();
+      const unavailable = await getUnavailableQuantities();
+      res.json({
+        ...availableVariant(variant, unavailable),
+        soldCount: variant.soldCount + (paid.get(variant.id) ?? 0),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching product variant: " + error.message });
+    }
+  });
+
+  app.get("/api/stripe/config", async (_req, res) => {
+    try {
+      res.json({ publishableKey: await getStripePublishableKey() });
+    } catch (error) {
+      console.error("Stripe configuration error:", error);
+      res.status(503).json({ message: "Payments are unavailable" });
+    }
+  });
+
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      const parsed = checkoutSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid checkout details", details: parsed.error.flatten() });
+      const { items, promoCode, customerEmail, customerName, address, checkoutKey } = parsed.data;
+      const hasPreorder = items.some(item => isPreorderVariant(item.variantId));
+      if (hasPreorder && parsed.data.preorderAcknowledged !== true)
+        return res.status(400).json({ message: "Please acknowledge full payment, unknown fulfillment timing, and the preorder refund policy." });
+      let normalizedPromoCode: string;
+      try {
+        normalizedPromoCode = parsePromoCodes(promoCode).join(" ");
+      } catch (error) {
+        return res.status(400).json({ message: error instanceof Error ? error.message : "Invalid promo code" });
+      }
+      if (items.some(item => isChicagoVariant(item.variantId)) && parsed.data.decantAcknowledged !== true)
+        return res.status(400).json({ message: "Please acknowledge the decant bottle disclosure" });
+      // Reject archived or owner-confirmed sold-out offers before contacting
+      // Stripe, including retries that still have a pre-existing reservation.
+      await priceCart(items, promoCode ?? undefined, new Map());
+      const stripe = await getStripeClient();
+      const hasDecants = items.some(item => isChicagoVariant(item.variantId));
+      const requestHash = createHash("sha256").update(JSON.stringify(parsed.data)).digest("hex");
+      const checkout = hasDecants
+        ? await reserveChicagoCheckout(items, promoCode ?? undefined, stripe, checkoutKey, requestHash)
+        : undefined;
+      const amount = checkout?.amount ?? await priceCart(items, promoCode ?? undefined);
+      const reservationId = checkout?.reservationId;
+      const params = {
+        amount,
+        currency: "usd",
+        automatic_payment_methods: { enabled: true },
+        receipt_email: customerEmail,
+        shipping: { name: customerName, address },
+        metadata: {
+          items: JSON.stringify(items.map(item => isPreorderVariant(item.variantId) ? { ...item, fulfillment: "backorder" } : item)),
+          promoCode: normalizedPromoCode,
+          policyAcknowledged: "true",
+          decantAcknowledged: parsed.data.decantAcknowledged === true ? "true" : "false",
+          ...(hasPreorder ? { preorderAcknowledged: "true", preorderTermsVersion, fulfillment: "backorder", preorderTerms } : {}),
+          ...(reservationId ? { chicagoReservationId: reservationId } : {}),
+        },
+      } as const;
+      const paymentIntent = reservationId
+        ? await getOrCreateChicagoIntent(reservationId, stripe, params)
+        : await stripe.paymentIntents.create(params, { idempotencyKey: checkoutKey });
+      res.json({ clientSecret: paymentIntent.client_secret, total: amount / 100 });
+    } catch (error) {
+      console.error("Failed to create payment intent:", error);
+      const inventoryError = error instanceof Error && /inventory|no longer available/i.test(error.message);
+      res.status(error instanceof CheckoutConflict ? 409 : inventoryError ? 400 : 503)
+        .json({ message: error instanceof CheckoutConflict || inventoryError ? error.message : "Could not start payment" });
+    }
+  });
+
+  // The client secret proves possession of this specific payment; never accept
+  // order totals, cart contents or customer identity from the confirmation call.
+  app.post("/api/complete-stripe-payment", async (req, res) => {
+    try {
+      const { paymentIntentId, clientSecret } = z.object({
+        paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/),
+        clientSecret: z.string().min(10),
+      }).parse(req.body);
+      const stripe = await getStripeClient();
+      const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (!intent.client_secret || intent.client_secret !== clientSecret)
+        return res.status(403).json({ message: "Invalid payment confirmation" });
+      if (intent.status !== "succeeded")
+        return res.status(409).json({ message: "Payment is not complete yet" });
+      const order = await recordPaidOrder(intent);
+      res.json({ success: true, orderId: order.id, total: (order.amount_cents / 100).toFixed(2),
+        customerEmail: order.customer_email, customerName: order.customer_name,
+        hasPreorder: intent.metadata.preorderAcknowledged === "true",
+        ...(intent.metadata.preorderAcknowledged === "true" ? { preorderTerms: intent.metadata.preorderTerms || preorderTerms } : {}) });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid payment confirmation" });
+      console.error("Payment confirmation failed:", error);
+      res.status(503).json({ message: "Payment status could not be confirmed. Please retry; do not pay again." });
+    }
+  });
+
+  // Get inventory count for a variant
+  app.get("/api/inventory/:variantId", async (req, res) => {
+    try {
+      const { variantId } = req.params;
+      const variant = await storage.getProductVariant(variantId);
+      
+      if (!variant?.isActive) {
+        return res.status(404).json({ message: "Product variant not found" });
+      }
+
+      const unavailable = await getUnavailableQuantities();
+      res.json({
+        remaining: availableVariant(variant, unavailable).remainingInventory,
+        isPreorder: isPreorderVariant(variant.id),
+        ...("sharedRemainingMl" in availableVariant(variant, unavailable) ? { sharedRemainingMl: availableVariant(variant, unavailable).sharedRemainingMl } : {}),
+        total: variant.totalInventory 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching inventory: " + error.message });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
