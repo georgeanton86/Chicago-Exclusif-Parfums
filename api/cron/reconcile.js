@@ -220,7 +220,7 @@ var rvltnOffers = [
     baseNotes: "Oud \xB7 Sandalwood \xB7 Cedarwood \xB7 Musk \xB7 Ambergris \xB7 Patchouli \xB7 Frankincense \xB7 Guaiac Wood \xB7 Saffron \xB7 Nutmeg"
   },
   ...[
-    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.png", "The next chapter of Green Monster."],
+    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.jpg", "The next chapter of Green Monster."],
     ["electron", "ELECTRON", "/assets/quantum/electron.jpg", "Quantum Series. Scent notes have not yet been published."],
     ["neutron", "NEUTRON", "/assets/quantum/neutron.jpg", "Quantum Series. Scent notes have not yet been published."],
     ["proton", "PROTON", "/assets/quantum/proton.jpg", "Quantum Series. Scent notes have not yet been published."],

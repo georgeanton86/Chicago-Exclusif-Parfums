@@ -35,7 +35,7 @@ export const rvltnOffers = [
     baseNotes: "Oud · Sandalwood · Cedarwood · Musk · Ambergris · Patchouli · Frankincense · Guaiac Wood · Saffron · Nutmeg",
   },
   ...[
-    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.png", "The next chapter of Green Monster."],
+    ["green-monster-2", "GREEN MONSTER 2.0", "/assets/quantum/green-monster-2.jpg", "The next chapter of Green Monster."],
     ["electron", "ELECTRON", "/assets/quantum/electron.jpg", "Quantum Series. Scent notes have not yet been published."],
     ["neutron", "NEUTRON", "/assets/quantum/neutron.jpg", "Quantum Series. Scent notes have not yet been published."],
     ["proton", "PROTON", "/assets/quantum/proton.jpg", "Quantum Series. Scent notes have not yet been published."],
