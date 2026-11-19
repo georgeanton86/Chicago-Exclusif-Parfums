@@ -176,6 +176,7 @@ function isTdgVariant(variantId) {
 var rvltnSizes = [5, 10, 20, 30];
 var rvltnPrices = ["22.50", "45.00", "85.00", "120.00"];
 var prexStockMl = 500;
+var quantumStockMl = 50;
 var preorderTermsVersion = "rvltn-preorder-2026-11";
 var preorderTerms = "Backorder / paid waitlist: the full price is charged now. There is no confirmed restock or shipping date. Orders are nonrefundable except where required by law. This is not a ready-to-ship purchase.";
 var rvltnOffers = [
@@ -213,6 +214,7 @@ var rvltnOffers = [
     slug: "prex2026",
     name: "PREX2026",
     status: "limited",
+    stockMl: prexStockMl,
     imageUrl: "/assets/Screenshot_20261107_102746_Messenger_1794069072245.jpg",
     description: "A limited release pairing citrus and marine notes with florals, spices and deep woods.",
     topNotes: "Bergamot \xB7 Mandarin Orange \xB7 Grapefruit \xB7 Lemon \xB7 Sea Salt \xB7 Fruity Notes \xB7 Aromatic Herbs \xB7 Pink Pepper",
@@ -228,7 +230,8 @@ var rvltnOffers = [
   ].map(([slug, name, file, description]) => ({
     slug,
     name,
-    status: "backorder",
+    status: "limited",
+    stockMl: quantumStockMl,
     imageUrl: file,
     description,
     topNotes: "",
@@ -247,8 +250,8 @@ var rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, 
   concentration: "Fragrance decant",
   price: rvltnPrices[slot],
   // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 100,
+  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
   soldCount: 0,
   isActive: true
 })));

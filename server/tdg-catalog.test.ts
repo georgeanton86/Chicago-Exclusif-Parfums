@@ -38,9 +38,9 @@ test("Archived TDG records retain stable IDs and prices without being purchasabl
   assert.deepEqual(tdgSizes.map(decantPricePerMl), ["1.50", "1.20", "1.10", "1.00", "0.90"]);
 });
 
-test("Dreamer remains visible and sold out alongside the four new blends", async () => {
+test("Dreamer remains visible and sold out alongside the new blends", async () => {
   const products = await storage.getAllProducts();
-  assert.equal(products.filter(p => p.isActive).length, 7);
+  assert.equal(products.filter(p => p.isActive).length, 12);
   assert.equal(products.filter(p => !p.isActive).length, 36);
   for (const offer of dreamerOffers)
     assert.equal((await storage.getProduct(offer.productId))?.isActive, true);

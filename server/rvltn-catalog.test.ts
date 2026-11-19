@@ -6,7 +6,7 @@ import type Stripe from "stripe";
 import express from "express";
 import { registerRoutes } from "./routes";
 import { existsSync } from "node:fs";
-import { rvltnOffers, rvltnVariants, availableVariant, prexSize, isPreorderVariant, preorderTermsVersion } from "../shared/rvltn";
+import { rvltnOffers, rvltnVariants, availableVariant, prexSize, isPreorderVariant, preorderTermsVersion, quantumStockMl, poolRemainingMl } from "../shared/rvltn";
 import { canAddCartLines, reconcileCart } from "../shared/cart-inventory";
 import { getUnavailableQuantities, priceCart, reserveChicagoCheckout, recordPaidOrder, attachChicagoIntent } from "./payments";
 
@@ -40,7 +40,7 @@ test("checkout API rejects missing preorder consent and pooled oversells before 
   }
 });
 test("new offers use supplied artwork, fixed prices, and no invented Duality notes", () => {
-  for (const offer of rvltnOffers) assert.ok(existsSync(`attached_assets/${offer.imageUrl.split("/").pop()}`));
+  for (const offer of rvltnOffers) assert.ok(existsSync(`attached_assets/${offer.imageUrl.replace("/assets/", "")}`));
   assert.equal(rvltnOffers[2].topNotes, "");
   assert.deepEqual(prex.map(v => v.price), ["22.50", "45.00", "85.00", "120.00"]);
   assert.deepEqual(prex.map(v => v.size), ["5 mL", "10 mL", "20 mL", "30 mL"]);
@@ -120,4 +120,32 @@ test("paid waitlist stores consent and full-payment status once, without live St
     if (reservationId) await pool.query("DELETE FROM chicago_reservations WHERE id = $1", [reservationId]);
     await pool.end();
   }
+});
+
+test("each Quantum fragrance sells from its own 50 mL pool shared across sizes", async () => {
+  const quantum = rvltnOffers.filter(o => o.slug === "green-monster-2" || ["electron", "neutron", "proton", "dark-matter"].includes(o.slug));
+  assert.equal(quantum.length, 5);
+  for (const offer of quantum) assert.equal(offer.status, "limited");
+  const sizesOf = (productId: string) => rvltnVariants.filter(v => v.productId === productId);
+  const [first, second] = quantum;
+  const firstVariants = sizesOf(first.productId);
+  // 30 mL + 10 mL of the first fragrance leaves 10 mL of its pool...
+  const unavailable = new Map([[firstVariants[3].id, 1], [firstVariants[1].id, 1]]);
+  const variants = rvltnVariants.map(v => availableVariant(v, unavailable));
+  assert.equal(poolRemainingMl(firstVariants[0].id, unavailable), quantumStockMl - 40);
+  assert.equal(variants.find(v => v.id === firstVariants[1].id)?.remainingInventory, 1);
+  assert.equal(variants.find(v => v.id === firstVariants[2].id)?.remainingInventory, 0);
+  // ...without touching any other fragrance's pool or PREX2026.
+  for (const other of [second, rvltnOffers[3]]) assert.equal(poolRemainingMl(sizesOf(other.productId)[0].id, unavailable), other.status === "limited" && other === second ? quantumStockMl : 500);
+  const fits = [{ variantId: firstVariants[0].id, quantity: 2 }];
+  assert.equal(canAddCartLines([], fits, variants), true);
+  await priceCart(fits, undefined, unavailable);
+  const oversell = [{ variantId: firstVariants[1].id, quantity: 2 }];
+  assert.equal(canAddCartLines([], oversell, variants), false);
+  await assert.rejects(() => priceCart(oversell, undefined, unavailable), /Insufficient inventory/);
+  // A full 50 mL of every Quantum fragrance can be carted together, but 60 mL of one cannot.
+  const everyPool = quantum.map(o => ({ variantId: sizesOf(o.productId)[3].id, quantity: 1 }));
+  const fresh = rvltnVariants.map(v => availableVariant(v, new Map()));
+  assert.equal(canAddCartLines([], everyPool, fresh), true);
+  assert.equal(canAddCartLines([], [{ variantId: sizesOf(first.productId)[3].id, quantity: 2 }], fresh), false);
 });

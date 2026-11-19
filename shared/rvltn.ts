@@ -1,6 +1,7 @@
 export const rvltnSizes = [5, 10, 20, 30] as const;
 export const rvltnPrices = ["22.50", "45.00", "85.00", "120.00"] as const;
 export const prexStockMl = 500;
+export const quantumStockMl = 50;
 export const preorderTermsVersion = "rvltn-preorder-2026-11";
 export const preorderTerms = "Backorder / paid waitlist: the full price is charged now. There is no confirmed restock or shipping date. Orders are nonrefundable except where required by law. This is not a ready-to-ship purchase.";
 export const rvltnOffers = [
@@ -27,7 +28,7 @@ export const rvltnOffers = [
     topNotes: "", middleNotes: "", baseNotes: "",
   },
   {
-    slug: "prex2026", name: "PREX2026", status: "limited",
+    slug: "prex2026", name: "PREX2026", status: "limited", stockMl: prexStockMl,
     imageUrl: "/assets/Screenshot_20261107_102746_Messenger_1794069072245.jpg",
     description: "A limited release pairing citrus and marine notes with florals, spices and deep woods.",
     topNotes: "Bergamot · Mandarin Orange · Grapefruit · Lemon · Sea Salt · Fruity Notes · Aromatic Herbs · Pink Pepper",
@@ -41,7 +42,7 @@ export const rvltnOffers = [
     ["proton", "PROTON", "/assets/quantum/proton.jpg", "Quantum Series. Scent notes have not yet been published."],
     ["dark-matter", "DARK MATTER", "/assets/quantum/dark-matter.jpg", "Quantum Series. Scent notes have not yet been published."],
   ].map(([slug, name, file, description]) => ({
-    slug, name, status: "backorder" as const, imageUrl: file, description,
+    slug, name, status: "limited" as const, stockMl: quantumStockMl, imageUrl: file, description,
     topNotes: "", middleNotes: "", baseNotes: "",
   })),
 ].map((offer, index) => ({
@@ -53,8 +54,8 @@ export const rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.ma
   productId: offer.productId, sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
   size: `${size} mL`, concentration: "Fragrance decant", price: rvltnPrices[slot],
   // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 100,
+  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
   soldCount: 0, isActive: true,
 })));
 export function rvltnVariant(id: string) { return rvltnVariants.find(v => v.id === id); }
@@ -69,12 +70,36 @@ export function prexSize(id: string): number {
 export function prexRemainingMl(unavailable: Map<string, number>): number {
   return Math.max(0, prexStockMl - Array.from(unavailable).reduce((sum, [id, quantity]) => sum + prexSize(id) * quantity, 0));
 }
+
+/** Limited releases (PREX2026 and each Quantum fragrance) sell from one mL pool shared by all of that product's sizes. */
+function limitedOffer(id: string) {
+  const variant = rvltnVariant(id);
+  const offer = variant && rvltnOffers.find(o => o.productId === variant.productId);
+  return offer && offer.status === "limited" ? offer : undefined;
+}
+/** Size in mL if the variant belongs to a limited release, otherwise 0. */
+export function poolSize(id: string): number {
+  return limitedOffer(id) ? parseInt(rvltnVariant(id)!.size, 10) : 0;
+}
+/** Identifies which pool a variant draws from (the product id), or undefined for non-limited variants. */
+export function poolKey(id: string): string | undefined {
+  return limitedOffer(id)?.productId;
+}
+export function poolName(id: string): string {
+  return limitedOffer(id)?.name ?? "this item";
+}
+export function poolRemainingMl(id: string, unavailable: Map<string, number>): number {
+  const offer = limitedOffer(id);
+  if (!offer) return 0;
+  const used = Array.from(unavailable).reduce((sum, [other, quantity]) => poolKey(other) === offer.productId ? sum + poolSize(other) * quantity : sum, 0);
+  return Math.max(0, (offer.stockMl ?? 0) - used);
+}
 export function availableVariant<T extends { id: string; remainingInventory: number }>(variant: T, unavailable: Map<string, number>) {
-  const size = prexSize(variant.id);
+  const size = poolSize(variant.id);
   return {
     ...variant,
-    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(prexRemainingMl(unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
-    ...(size ? { sharedRemainingMl: prexRemainingMl(unavailable) } : {}),
+    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(poolRemainingMl(variant.id, unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
+    ...(size ? { sharedRemainingMl: poolRemainingMl(variant.id, unavailable) } : {}),
     isPreorder: isPreorderVariant(variant.id),
   };
 }

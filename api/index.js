@@ -162,6 +162,7 @@ function isTdgVariant(variantId) {
 var rvltnSizes = [5, 10, 20, 30];
 var rvltnPrices = ["22.50", "45.00", "85.00", "120.00"];
 var prexStockMl = 500;
+var quantumStockMl = 50;
 var preorderTermsVersion = "rvltn-preorder-2026-11";
 var preorderTerms = "Backorder / paid waitlist: the full price is charged now. There is no confirmed restock or shipping date. Orders are nonrefundable except where required by law. This is not a ready-to-ship purchase.";
 var rvltnOffers = [
@@ -199,6 +200,7 @@ var rvltnOffers = [
     slug: "prex2026",
     name: "PREX2026",
     status: "limited",
+    stockMl: prexStockMl,
     imageUrl: "/assets/Screenshot_20261107_102746_Messenger_1794069072245.jpg",
     description: "A limited release pairing citrus and marine notes with florals, spices and deep woods.",
     topNotes: "Bergamot \xB7 Mandarin Orange \xB7 Grapefruit \xB7 Lemon \xB7 Sea Salt \xB7 Fruity Notes \xB7 Aromatic Herbs \xB7 Pink Pepper",
@@ -214,7 +216,8 @@ var rvltnOffers = [
   ].map(([slug, name, file, description]) => ({
     slug,
     name,
-    status: "backorder",
+    status: "limited",
+    stockMl: quantumStockMl,
     imageUrl: file,
     description,
     topNotes: "",
@@ -233,8 +236,8 @@ var rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, 
   concentration: "Fragrance decant",
   price: rvltnPrices[slot],
   // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor(prexStockMl / size) : 100,
+  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
   soldCount: 0,
   isActive: true
 })));
@@ -245,19 +248,32 @@ function isPreorderVariant(id) {
   const variant = rvltnVariant(id);
   return Boolean(variant && rvltnOffers.find((o) => o.productId === variant.productId)?.status === "backorder");
 }
-function prexSize(id) {
+function limitedOffer(id) {
   const variant = rvltnVariant(id);
-  return variant?.productId === rvltnOffers[3].productId ? parseInt(variant.size, 10) : 0;
+  const offer = variant && rvltnOffers.find((o) => o.productId === variant.productId);
+  return offer && offer.status === "limited" ? offer : void 0;
 }
-function prexRemainingMl(unavailable) {
-  return Math.max(0, prexStockMl - Array.from(unavailable).reduce((sum, [id, quantity]) => sum + prexSize(id) * quantity, 0));
+function poolSize(id) {
+  return limitedOffer(id) ? parseInt(rvltnVariant(id).size, 10) : 0;
+}
+function poolKey(id) {
+  return limitedOffer(id)?.productId;
+}
+function poolName(id) {
+  return limitedOffer(id)?.name ?? "this item";
+}
+function poolRemainingMl(id, unavailable) {
+  const offer = limitedOffer(id);
+  if (!offer) return 0;
+  const used = Array.from(unavailable).reduce((sum, [other, quantity]) => poolKey(other) === offer.productId ? sum + poolSize(other) * quantity : sum, 0);
+  return Math.max(0, (offer.stockMl ?? 0) - used);
 }
 function availableVariant(variant, unavailable) {
-  const size = prexSize(variant.id);
+  const size = poolSize(variant.id);
   return {
     ...variant,
-    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(prexRemainingMl(unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
-    ...size ? { sharedRemainingMl: prexRemainingMl(unavailable) } : {},
+    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(poolRemainingMl(variant.id, unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
+    ...size ? { sharedRemainingMl: poolRemainingMl(variant.id, unavailable) } : {},
     isPreorder: isPreorderVariant(variant.id)
   };
 }
@@ -878,8 +894,16 @@ async function handlePaymentIntentNotification(stripe, type, intentId) {
 async function priceCart(items, promoCode, unavailable) {
   let subtotalCents = 0;
   const paid = unavailable ?? await getUnavailableQuantities();
-  const requestedMl = items.reduce((sum, item) => sum + prexSize(item.variantId) * item.quantity, 0);
-  if (requestedMl > prexRemainingMl(paid)) throw new Error("Insufficient inventory: PREX2026 sizes share the remaining fragrance volume");
+  const requestedMl = /* @__PURE__ */ new Map();
+  for (const item of items) {
+    const key = poolKey(item.variantId);
+    if (!key) continue;
+    const entry = requestedMl.get(key) ?? { ml: 0, sample: item.variantId };
+    entry.ml += poolSize(item.variantId) * item.quantity;
+    requestedMl.set(key, entry);
+  }
+  for (const { ml, sample } of Array.from(requestedMl.values()))
+    if (ml > poolRemainingMl(sample, paid)) throw new Error(`Insufficient inventory: ${poolName(sample)} sizes share the remaining fragrance volume`);
   for (const item of items) {
     const variant = await storage.getProductVariant(item.variantId);
     if (!variant || !variant.isActive) throw new Error("An item is no longer available");

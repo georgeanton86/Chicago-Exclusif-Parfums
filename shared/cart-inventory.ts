@@ -1,4 +1,4 @@
-import { prexSize } from "./rvltn";
+import { poolKey, poolSize } from "./rvltn";
 type InventoryVariant = { id: string; isActive: boolean; remainingInventory: number; sharedRemainingMl?: number };
 type CartLine = { variantId: string; quantity: number };
 
@@ -7,13 +7,24 @@ export function inventoryLimit(variant: InventoryVariant | undefined): number {
   return Math.min(100, Math.max(0, Math.floor(variant.remainingInventory)));
 }
 
+/** Remaining mL for each limited-release pool, as reported by the variants. */
+function poolRemainings(variants: InventoryVariant[]): Map<string, number> {
+  const remaining = new Map<string, number>();
+  for (const variant of variants) {
+    const key = poolKey(variant.id);
+    if (key && variant.sharedRemainingMl !== undefined && !remaining.has(key)) remaining.set(key, variant.sharedRemainingMl);
+  }
+  return remaining;
+}
+
 export function reconcileCart<T extends CartLine>(lines: T[], variants: InventoryVariant[]): T[] {
   const byId = new Map(variants.map(variant => [variant.id, variant]));
-  let remainingMl = variants.find(v => prexSize(v.id) && v.sharedRemainingMl !== undefined)?.sharedRemainingMl ?? 0;
+  const remainingMl = poolRemainings(variants);
   return lines.flatMap(line => {
-    const size = prexSize(line.variantId);
-    const quantity = Math.min(line.quantity, inventoryLimit(byId.get(line.variantId)), size ? Math.floor(remainingMl / size) : Infinity);
-    if (size && Number.isInteger(quantity) && quantity > 0) remainingMl -= size * quantity;
+    const size = poolSize(line.variantId);
+    const key = poolKey(line.variantId);
+    const quantity = Math.min(line.quantity, inventoryLimit(byId.get(line.variantId)), size && key ? Math.floor((remainingMl.get(key) ?? 0) / size) : Infinity);
+    if (size && key && Number.isInteger(quantity) && quantity > 0) remainingMl.set(key, (remainingMl.get(key) ?? 0) - size * quantity);
     return Number.isInteger(quantity) && quantity > 0 ? [{ ...line, quantity }] : [];
   });
 }
@@ -30,7 +41,12 @@ export function canAddCartLines(current: CartLine[], additions: CartLine[], vari
     if (!Number.isInteger(line.quantity) || line.quantity <= 0) return false;
     quantities.set(line.variantId, (quantities.get(line.variantId) ?? 0) + line.quantity);
   }
-  const remainingMl = variants.find(v => prexSize(v.id) && v.sharedRemainingMl !== undefined)?.sharedRemainingMl ?? 0;
-  const requestedMl = Array.from(quantities).reduce((sum, [id, quantity]) => sum + prexSize(id) * quantity, 0);
-  return requestedMl <= remainingMl && Array.from(quantities).every(([id, quantity]) => quantity <= inventoryLimit(byId.get(id)));
+  const remainingMl = poolRemainings(variants);
+  const requestedMl = new Map<string, number>();
+  for (const [id, quantity] of Array.from(quantities)) {
+    const key = poolKey(id);
+    if (key) requestedMl.set(key, (requestedMl.get(key) ?? 0) + poolSize(id) * quantity);
+  }
+  return Array.from(requestedMl).every(([key, ml]) => ml <= (remainingMl.get(key) ?? 0)) &&
+    Array.from(quantities).every(([id, quantity]) => quantity <= inventoryLimit(byId.get(id)));
 }

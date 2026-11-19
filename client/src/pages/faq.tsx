@@ -5,11 +5,11 @@ import { Link } from "wouter";
 import { preorderTerms } from "@shared/rvltn";
 
 const questions = [
-  ["What is RVLTN Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. The current collection features Sleep Paralysis, Green Monster, Duality and PREX2026; the sold-out Dreamer Series remains in the archive."],
+  ["What is RVLTN Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. The current collection features Sleep Paralysis, Green Monster, Duality, PREX2026 and the Quantum Series; the sold-out Dreamer Series remains in the archive."],
   ["What does backorder / paid waitlist mean?", preorderTerms],
-  ["Which blends are backorders?", "Sleep Paralysis, Green Monster, Duality and the Quantum Series (Green Monster 2.0, Electron, Neutron, Proton and Dark Matter) are full-payment backorders. Backorder quantities are order limits, not a statement of physical stock."],
-  ["What is available now?", "PREX2026 is a limited release with a total of 500 mL shared across every size. Live availability is checked across your whole cart and again before payment."],
-  ["Will a mixed order ship separately?", "No. Orders containing backorders, including mixed orders with available PREX2026 items, ship together when all items are ready. There is no confirmed restock or shipping date for backorders."],
+  ["Which blends are backorders?", "Sleep Paralysis, Green Monster and Duality are full-payment backorders. Backorder quantities are order limits, not a statement of physical stock."],
+  ["What is available now?", "PREX2026 is a limited release with 500 mL shared across every size, and each Quantum Series fragrance (Green Monster 2.0, Electron, Neutron, Proton and Dark Matter) is a very limited release with 50 mL shared across its sizes. Live availability is checked across your whole cart and again before payment."],
+  ["Will a mixed order ship separately?", "No. Orders containing backorders, including mixed orders with available limited-release items, ship together when all items are ready. There is no confirmed restock or shipping date for backorders."],
   ["Which sizes and prices can I choose?", "5 mL is $22.50; 10 mL is $45; 20 mL is $85; 30 mL is $120. These are fragrance decants. The original artwork is displayed unchanged and does not promise the illustrated retail bottle packaging."],
   ["What does Duality smell like?", "Duality explores light and darkness. Its scent notes have not yet been published."],
   ["Can I purchase the Dreamer Series?", "No. Lucid State, Fever Dream and Altered Mental Status are all sold out. No sizes are available for purchase."],

@@ -393,7 +393,7 @@ export default function StripeCheckout() {
                 {orderData.hasPreorder === true ? <div className="mb-4 text-sm leading-7">
                   <p className="eyebrow mb-2 text-primary">Paid backorder confirmed — not ready to ship</p>
                   <p>{orderData.preorderTerms || preorderTerms}</p>
-                  <p className="mt-3 font-semibold">Your order, including any available PREX2026 items, ships together when all items are ready.</p>
+                  <p className="mt-3 font-semibold">Your order, including any available limited-release items, ships together when all items are ready.</p>
                 </div> : orderData.hasPreorder === false ? <p className="mb-4 text-sm">Available-stock order confirmed. No backorder items are included.</p> : null}
                 <p className="text-sm text-muted-foreground">
                   <strong>Important:</strong> All sales are final except where required by law. Our policy and statutory protections apply.
@@ -447,7 +447,7 @@ export default function StripeCheckout() {
             <CardDescription>Your order details, kept together.</CardDescription>
           </CardHeader>
           <CardContent>
-            {hasPreorder && <div className="mb-6 border border-primary p-4 text-sm leading-7"><p className="eyebrow mb-3 text-primary">Backorder / full payment now</p><p>{preorderTerms}</p><p className="mt-3 font-semibold">{hasAvailableItems ? "This is a mixed order. " : ""}Orders containing backorders ship together when all items are ready, including any available PREX2026 items.</p></div>}
+            {hasPreorder && <div className="mb-6 border border-primary p-4 text-sm leading-7"><p className="eyebrow mb-3 text-primary">Backorder / full payment now</p><p>{preorderTerms}</p><p className="mt-3 font-semibold">{hasAvailableItems ? "This is a mixed order. " : ""}Orders containing backorders ship together when all items are ready, including any available limited-release items.</p></div>}
             {error && <p role="alert" className="mb-4 text-[#edaaa0]">{error}</p>}
             {!clientSecret && !new URLSearchParams(window.location.search).has("payment_intent") && (
               <form onSubmit={startPayment} className="space-y-4">
