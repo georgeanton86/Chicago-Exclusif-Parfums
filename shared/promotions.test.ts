@@ -25,3 +25,11 @@ test("unknown promos fail explicitly", () => {
   assert.throws(() => parsePromoCodes("80OFF"), /invalid/);
   assert.throws(() => cartPricing(5999, 0, "NOPE"), /invalid/);
 });
+
+test("10OFFNOW takes 10% off, is case insensitive, and cannot stack with another percentage code", () => {
+  assert.deepEqual(parsePromoCodes(" 10offnow "), ["10OFFNOW"]);
+  assert.equal(cartPricing(10000, 0, "10OFFNOW").discountCents, 1000);
+  assert.equal(cartPricing(10000, 0, "10OFFNOW").totalCents, 9000);
+  assert.equal(cartPricing(4000, 0, "10OFFNOW").totalCents, 3600 + 899);
+  assert.throws(() => parsePromoCodes("WELCOME10 10OFFNOW"), /only one percentage/);
+});

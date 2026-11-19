@@ -18,6 +18,7 @@ import { chicagoSetDiscountCents, countChicagoSets, isChicagoVariant } from "@sh
 import { cartMatchesInventory, inventoryLimit, reconcileCart } from "@shared/cart-inventory";
 import { fetchCheckoutInventory } from "@/lib/checkout-inventory";
 import { isPreorderVariant, preorderTerms, preorderTermsVersion } from "@shared/rvltn";
+import { cartPricing, parsePromoCodes } from "@shared/promotions";
 
 interface CartItem {
   variant: ProductVariant;
@@ -209,6 +210,25 @@ export default function StripeCheckout() {
    const hasPreorder = cartItems.some(item => isPreorderVariant(item.variant.id));
    const hasAvailableItems = cartItems.some(item => !isPreorderVariant(item.variant.id));
   const setCount = countChicagoSets(cartItems.map(item => ({ variantId: item.variant.id, quantity: item.quantity })));
+  const [promoInput, setPromoInput] = useState("");
+  const [promoMessage, setPromoMessage] = useState("");
+  const subtotalCents = cartItems.reduce((sum, item) => sum + Math.round(Number(item.variant.price) * 100) * item.quantity, 0);
+  const pricing = (() => {
+    try { return cartPricing(subtotalCents, setCount * chicagoSetDiscountCents, promoCode); }
+    catch { return cartPricing(subtotalCents, setCount * chicagoSetDiscountCents, null); }
+  })();
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const applyPromo = () => {
+    const raw = promoInput.trim();
+    if (!raw) { setPromoCode(null); setPromoMessage(""); return; }
+    try {
+      const codes = parsePromoCodes(raw);
+      setPromoCode(codes.join(" "));
+      setPromoMessage(`Code ${codes.join(" ")} applied.`);
+    } catch (err) {
+      setPromoMessage(err instanceof Error ? err.message : "Promo code is invalid or no longer available.");
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -468,7 +488,15 @@ export default function StripeCheckout() {
                    {setCount > 0 && <div className="flex justify-between text-sm text-muted-foreground"><span>Collection set savings × {setCount}</span><span>-${(setCount * chicagoSetDiscountCents / 100).toFixed(2)}</span></div>}
                    {hasChicagoDecant && <p className="mt-3 border-l-2 border-primary pl-3 text-sm text-muted-foreground">Collection artwork does not specify the packaging of an existing order. Refer to the details recorded with that order.</p>}
                   <div className="flex justify-between pt-4 font-semibold"><span>Subtotal</span><span>${(cartItems.reduce((sum, item) => sum + Number(item.variant.price) * item.quantity, 0) - setCount * chicagoSetDiscountCents / 100).toFixed(2)}</span></div>
-                  <p className="text-sm text-muted-foreground">Shipping and any additional discount are included in the final payment total.</p>
+                  <div className="flex items-end gap-2 pt-2">
+                    <div className="flex-1"><Label htmlFor="promo">Discount code</Label><Input id="promo" autoCapitalize="characters" value={promoInput} onChange={e => setPromoInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); applyPromo(); } }} /></div>
+                    <Button type="button" variant="outline" onClick={applyPromo}>Apply</Button>
+                  </div>
+                  {promoMessage && <p role="status" className="text-sm text-muted-foreground">{promoMessage}</p>}
+                  {pricing.discountCents > 0 && <div className="flex justify-between text-sm"><span>Discount ({pricing.discountPercent}% off)</span><span>-{money(pricing.discountCents)}</span></div>}
+                  <div className="flex justify-between text-sm"><span>Shipping</span><span>{pricing.shippingCents === 0 ? "Free" : money(pricing.shippingCents)}</span></div>
+                  <p className="text-xs text-muted-foreground">Free shipping on orders over $50. Sales tax is not calculated.</p>
+                  <div className="flex justify-between pt-2 font-semibold"><span>Total</span><span>{money(pricing.totalCents)}</span></div>
                   <Button type="button" variant="outline" onClick={() => setLocation("/shop")}>Edit bag in the shop</Button>
                 </div>
                 <div><Label htmlFor="name">Full name</Label><Input id="name" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
