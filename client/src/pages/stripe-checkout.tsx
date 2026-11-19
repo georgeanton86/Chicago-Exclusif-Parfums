@@ -398,9 +398,9 @@ export default function StripeCheckout() {
           <Card className="border border-border">
             <CardHeader className="text-center">
               <CheckCircle className="w-12 h-12 text-primary mx-auto mb-4" />
-              <p className="eyebrow text-primary">RVLTN Parfums</p>
+              <p className="eyebrow text-primary">Chicago Exclusif Parfums</p>
               <CardTitle className="text-4xl font-serif font-normal">Order confirmed.</CardTitle>
-              <CardDescription>Thank you for your purchase from RVLTN Parfums.</CardDescription>
+              <CardDescription>Thank you for your purchase from Chicago Exclusif Parfums.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-warm-gray p-4 space-y-2 break-words">
@@ -448,7 +448,7 @@ export default function StripeCheckout() {
         <div className="h-[60vh] flex items-center justify-center">
           <div className="text-center">
             <div className="mx-auto mb-5 h-4 w-48 animate-pulse bg-muted" />
-            <p className="text-sm text-muted-foreground">RVLTN Parfums — preparing secure checkout…</p>
+            <p className="text-sm text-muted-foreground">Chicago Exclusif Parfums — preparing secure checkout…</p>
           </div>
         </div>
         <Footer />
@@ -462,7 +462,7 @@ export default function StripeCheckout() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <Card>
           <CardHeader>
-            <p className="eyebrow text-primary">RVLTN Parfums</p>
+            <p className="eyebrow text-primary">Chicago Exclusif Parfums</p>
             <CardTitle className="text-4xl font-serif font-normal">Secure checkout</CardTitle>
             <CardDescription>Your order details, kept together.</CardDescription>
           </CardHeader>

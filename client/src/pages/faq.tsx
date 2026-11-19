@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { preorderTerms } from "@shared/rvltn";
 
 const questions = [
-  ["What is RVLTN Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. The Quantum Series is the current drop. Every earlier series has sold out, and the Dreamer Series remains in the archive."],
+  ["What is Chicago Exclusif Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. The Quantum Series is the current drop. Every earlier series has sold out, and the Dreamer Series remains in the archive."],
   ["What does backorder / paid waitlist mean?", preorderTerms],
   ["Which blends have sold out?", "Dreamer, Sleep Paralysis, Green Monster, Duality and PREX2026 have all sold out and cannot be purchased."],
   ["What is available now?", "Only the Quantum Series is available: Green Monster 2.0, Electron, Neutron, Proton and Dark Matter. Each has 50 mL in total, shared across its sizes, and the complete set of five 50 mL bottles is $400. Live availability is checked across your whole cart and again before payment."],
@@ -19,5 +19,5 @@ const questions = [
   ["Where can I find order policies?", "Our policies page contains the terms and return policy. For questions about an existing purchase, use the contact information included with your order."],
 ];
 export default function FAQ() {
-  return <div className="min-h-[100dvh]"><Header /><main className="house-wrap pb-24 pt-36"><p className="eyebrow text-primary">RVLTN Parfums / Useful details</p><h1 className="mt-5 font-serif text-6xl sm:text-8xl">A little clarity.</h1><div className="mt-14 max-w-3xl"><Accordion type="single" collapsible>{questions.map(([title, answer], i) => <AccordionItem key={title} value={String(i)}><AccordionTrigger className="py-6 text-left text-sm">{title}</AccordionTrigger><AccordionContent className="max-w-2xl text-sm leading-7 text-muted-foreground">{answer}</AccordionContent></AccordionItem>)}</Accordion><div className="mt-10 flex flex-wrap gap-8"><Link href="/shop" className="house-link">The collection</Link><Link href="/policy" className="house-link">Order policies</Link></div></div></main><Footer /></div>;
+  return <div className="min-h-[100dvh]"><Header /><main className="house-wrap pb-24 pt-36"><p className="eyebrow text-primary">Chicago Exclusif Parfums / Useful details</p><h1 className="mt-5 font-serif text-6xl sm:text-8xl">A little clarity.</h1><div className="mt-14 max-w-3xl"><Accordion type="single" collapsible>{questions.map(([title, answer], i) => <AccordionItem key={title} value={String(i)}><AccordionTrigger className="py-6 text-left text-sm">{title}</AccordionTrigger><AccordionContent className="max-w-2xl text-sm leading-7 text-muted-foreground">{answer}</AccordionContent></AccordionItem>)}</Accordion><div className="mt-10 flex flex-wrap gap-8"><Link href="/shop" className="house-link">The collection</Link><Link href="/policy" className="house-link">Order policies</Link></div></div></main><Footer /></div>;
 }

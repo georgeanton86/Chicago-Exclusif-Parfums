@@ -249,7 +249,7 @@ var quantumSet = {
   sku: "RVLTN-QUANTUM-SET",
   name: "QUANTUM SERIES \u2014 COMPLETE SET",
   price: "400.00",
-  imageUrl: "/assets/quantum/quantum-series.jpg",
+  imageUrl: "/assets/quantum/lineup.jpg",
   description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched."
 };
 var rvltnVariants = [

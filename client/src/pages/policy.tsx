@@ -11,7 +11,7 @@ export default function Policy() {
       <section className="bg-background pb-20 pt-36">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="eyebrow mb-4 text-primary">RVLTN Parfums · Independent fragrance house</p>
+            <p className="eyebrow mb-4 text-primary">Chicago Exclusif Parfums · Independent fragrance house</p>
             <h1 className="mb-4 font-serif text-5xl sm:text-7xl">Terms & Conditions</h1>
             <p className="text-sm text-muted-foreground">Important information regarding your purchase</p>
           </div>
@@ -31,7 +31,7 @@ export default function Policy() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2 text-lg">OVERVIEW</h3>
                   <p className="leading-relaxed">
-                    Due to health, safety, and hygiene considerations governing fragrance products, RVLTN Parfums operates under a strict <strong>NO RETURN, NO REFUND</strong> policy for purchases.
+                    Due to health, safety, and hygiene considerations governing fragrance products, Chicago Exclusif Parfums operates under a strict <strong>NO RETURN, NO REFUND</strong> policy for purchases.
                   </p>
                 </div>
                 

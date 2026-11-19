@@ -107,7 +107,7 @@ const CheckoutForm = ({ checkoutData }: { checkoutData: CheckoutData }) => {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <Card>
         <CardHeader>
-          <p className="eyebrow text-primary">RVLTN Parfums</p>
+          <p className="eyebrow text-primary">Chicago Exclusif Parfums</p>
           <CardTitle className="text-4xl font-serif font-normal">Secure checkout</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

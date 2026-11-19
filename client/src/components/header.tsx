@@ -13,7 +13,7 @@ export default function Header({ cartCount, onCartClick }: HeaderProps = {}) {
   const showBag = onCartClick ?? (() => setBagOpen(true));
   return <><header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">
     <div className="house-wrap flex h-20 items-center justify-between gap-5">
-      <Link href="/" aria-label="RVLTN Parfums home" className="flex items-baseline gap-3"><span className="text-3xl font-extrabold tracking-[-.08em]">RVLTN</span><span className="eyebrow !text-[9px]">Parfums</span></Link>
+      <Link href="/" aria-label="Chicago Exclusif Parfums home" className="flex flex-col leading-none"><span className="font-serif text-xl uppercase tracking-[.14em] sm:text-2xl">Chicago Exclusif</span><span className="eyebrow mt-1 !text-[9px] tracking-[.5em]">Parfums</span></Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-8 md:flex">
         <Link href="/shop" className="eyebrow hover:text-primary">The collection</Link>
         <a href="/#about" className="eyebrow hover:text-primary">The house</a>

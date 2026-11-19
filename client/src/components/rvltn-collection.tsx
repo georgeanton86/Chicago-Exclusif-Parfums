@@ -15,7 +15,7 @@ function Offer({ offer, index }: { offer: typeof rvltnOffers[number]; index: num
   return <article id={offer.slug} className="archive-row">
     <div className="archive-art"><img src={offer.imageUrl} alt={`${offer.name} original fragrance artwork`} className="offer-art" style={{ aspectRatio: "auto", objectFit: "contain" }} loading="lazy" /></div>
     <div>
-      <p className="eyebrow text-primary">RVLTN / {String(index + 1).padStart(2, "0")} — {soldOut ? "Sold out" : backorder ? "Backorder · paid waitlist" : "Limited release · available stock"}</p>
+      <p className="eyebrow text-primary">Chicago Exclusif / {String(index + 1).padStart(2, "0")} — {soldOut ? "Sold out" : backorder ? "Backorder · paid waitlist" : "Limited release · available stock"}</p>
       {soldOut && <span className="sold-label mt-4 inline-block">Sold out</span>}
       <h2 className="mt-5 font-serif text-5xl sm:text-6xl">{offer.name}</h2>
       <p className="my-6 max-w-xl text-sm leading-7 text-muted-foreground">{offer.description}</p>
@@ -36,7 +36,7 @@ function QuantumSet() {
   return <article id={quantumSet.slug} className="archive-row">
     <div className="archive-art"><img src={quantumSet.imageUrl} alt="The Quantum Series complete set artwork" className="offer-art" style={{ aspectRatio: "auto", objectFit: "contain" }} loading="lazy" /></div>
     <div>
-      <p className="eyebrow text-primary">RVLTN / The latest drop — Complete set · Very limited</p>
+      <p className="eyebrow text-primary">Chicago Exclusif / The latest drop — Complete set · Very limited</p>
       <h2 className="mt-5 font-serif text-5xl sm:text-6xl">The Quantum Series</h2>
       <p className="my-6 max-w-xl text-sm leading-7 text-muted-foreground">{quantumSet.description}</p>
       <div className="mt-5 flex flex-wrap items-center gap-5"><span className="font-serif text-3xl">${Number(quantumSet.price).toFixed(0)}</span><button className="house-button" disabled={!available || cart.variants.isError || cart.products.isError || cart.products.isLoading} onClick={() => { if (cart.add(quantumSet.variantId, 1)) setAdded(true); }}>{cart.variants.isLoading ? "Checking availability…" : available ? "Add the complete set" : "Set unavailable"}</button></div>
