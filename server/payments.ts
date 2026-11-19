@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { storage } from "./storage";
 import { chicagoSetDiscountCents, countChicagoSets, isChicagoVariant } from "@shared/chicago";
 import { cartPricing, minimumCardChargeCents } from "@shared/promotions";
-import { availableVariant, isPreorderVariant, poolKey, poolName, poolRemainingMl, poolSize, preorderTerms, preorderTermsVersion } from "@shared/rvltn";
+import { availableVariant, isPreorderVariant, poolDemand, poolLabel, poolRemaining, preorderTerms, preorderTermsVersion } from "@shared/rvltn";
 
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for orders");
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -216,16 +216,11 @@ export async function handlePaymentIntentNotification(
 export async function priceCart(items: CartLine[], promoCode?: string, unavailable?: Map<string, number>) {
   let subtotalCents = 0;
   const paid = unavailable ?? await getUnavailableQuantities();
-  const requestedMl = new Map<string, { ml: number; sample: string }>();
-  for (const item of items) {
-    const key = poolKey(item.variantId);
-    if (!key) continue;
-    const entry = requestedMl.get(key) ?? { ml: 0, sample: item.variantId };
-    entry.ml += poolSize(item.variantId) * item.quantity;
-    requestedMl.set(key, entry);
-  }
-  for (const { ml, sample } of Array.from(requestedMl.values()))
-    if (ml > poolRemainingMl(sample, paid)) throw new Error(`Insufficient inventory: ${poolName(sample)} sizes share the remaining fragrance volume`);
+  const requestedMl = new Map<string, number>();
+  for (const item of items)
+    for (const [key, ml] of poolDemand(item.variantId)) requestedMl.set(key, (requestedMl.get(key) ?? 0) + ml * item.quantity);
+  for (const [key, ml] of Array.from(requestedMl))
+    if (ml > poolRemaining(key, paid)) throw new Error(`Insufficient inventory: ${poolLabel(key)} sizes share the remaining fragrance volume`);
   for (const item of items) {
     const variant = await storage.getProductVariant(item.variantId);
     if (!variant || !variant.isActive) throw new Error("An item is no longer available");

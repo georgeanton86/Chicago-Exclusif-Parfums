@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { chicagoOffers } from "@shared/chicago";
 import { dreamerOffers, dreamerVariants } from "@shared/dreamer";
 import { tdgOffers, tdgVariants } from "@shared/tdg";
-import { rvltnOffers, rvltnVariants } from "@shared/rvltn";
+import { quantumSet, rvltnOffers, rvltnVariants } from "@shared/rvltn";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -54,6 +54,12 @@ export class MemStorage implements IStorage {
         isActive: true, releaseDate: new Date(), createdAt: new Date(),
       });
     }
+    this.products.set(quantumSet.productId, {
+      id: quantumSet.productId, name: quantumSet.name, description: quantumSet.description,
+      notes: "Limited availability — complete set", topNotes: "", middleNotes: "", baseNotes: "",
+      imageUrl: quantumSet.imageUrl, type: "Complete set", bibleVerse: "", verseReference: "",
+      isActive: true, releaseDate: new Date(), createdAt: new Date(),
+    });
     for (const variant of rvltnVariants)
       this.productVariants.set(variant.id, { ...variant, createdAt: new Date() });
     // THE SEVEN SEALS COLLECTION - All 8 fragrances available now

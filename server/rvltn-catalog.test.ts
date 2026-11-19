@@ -6,7 +6,12 @@ import type Stripe from "stripe";
 import express from "express";
 import { registerRoutes } from "./routes";
 import { existsSync } from "node:fs";
-import { rvltnOffers, rvltnVariants, availableVariant, prexSize, isPreorderVariant, preorderTermsVersion, quantumStockMl, poolRemainingMl } from "../shared/rvltn";
+import { rvltnOffers, rvltnVariants, availableVariant, prexSize, isPreorderVariant, preorderTermsVersion, quantumStockMl, poolRemainingMl, soldOutSlugs, quantumSet } from "../shared/rvltn";
+
+// The pooled-stock and backorder tests below exercise the mechanics, so they run with the sold-out switch open.
+// A separate test at the end checks the real default (earlier releases closed).
+const closedSlugs = new Set(soldOutSlugs);
+soldOutSlugs.clear();
 import { canAddCartLines, reconcileCart } from "../shared/cart-inventory";
 import { getUnavailableQuantities, priceCart, reserveChicagoCheckout, recordPaidOrder, attachChicagoIntent } from "./payments";
 
@@ -148,4 +153,53 @@ test("each Quantum fragrance sells from its own 50 mL pool shared across sizes",
   const fresh = rvltnVariants.map(v => availableVariant(v, new Map()));
   assert.equal(canAddCartLines([], everyPool, fresh), true);
   assert.equal(canAddCartLines([], [{ variantId: sizesOf(first.productId)[3].id, quantity: 2 }], fresh), false);
+});
+
+test("earlier releases are sold out by default and cannot be bought; the Quantum Series stays open", async () => {
+  soldOutSlugs.clear();
+  for (const slug of closedSlugs) soldOutSlugs.add(slug);
+  try {
+    assert.deepEqual([...closedSlugs].sort(), ["duality", "green-monster", "prex2026", "sleep-paralysis"]);
+    for (const slug of closedSlugs) {
+      const offer = rvltnOffers.find(o => o.slug === slug)!;
+      for (const variant of rvltnVariants.filter(v => v.productId === offer.productId)) {
+        const view = availableVariant(variant, new Map());
+        assert.equal(view.remainingInventory, 0, `${slug} ${variant.size} must be sold out`);
+        assert.equal(view.isPreorder, false);
+        await assert.rejects(() => priceCart([{ variantId: variant.id, quantity: 1 }], undefined, new Map()), /Insufficient inventory/);
+      }
+    }
+    const electron = rvltnVariants.find(v => v.sku === "RVLTN-ELECTRON-5ML")!;
+    assert.equal(availableVariant(electron, new Map()).remainingInventory, 10);
+    assert.ok(await priceCart([{ variantId: electron.id, quantity: 1 }], undefined, new Map()) > 0);
+  } finally {
+    soldOutSlugs.clear();
+  }
+});
+test("the $400 complete set uses 50 mL of every Quantum fragrance and cannot oversell", async () => {
+  const set = rvltnVariants.find(v => v.id === quantumSet.variantId)!;
+  assert.equal(set.price, "400.00");
+  const fresh = new Map<string, number>();
+  assert.equal(availableVariant(set, fresh).remainingInventory, 1);
+  assert.equal(await priceCart([{ variantId: set.id, quantity: 1 }], undefined, fresh), 40000);
+  // Two sets would need 100 mL of each fragrance.
+  await assert.rejects(() => priceCart([{ variantId: set.id, quantity: 2 }], undefined, fresh), /Insufficient inventory/);
+  // Once the set is paid or held, no bottle of any Quantum fragrance can be bought.
+  const afterSet = new Map([[set.id, 1]]);
+  for (const slug of ["proton", "neutron", "electron", "dark-matter", "green-monster-2"]) {
+    const offer = rvltnOffers.find(o => o.slug === slug)!;
+    const five = rvltnVariants.find(v => v.productId === offer.productId)!;
+    assert.equal(availableVariant(five, afterSet).remainingInventory, 0);
+    await assert.rejects(() => priceCart([{ variantId: five.id, quantity: 1 }], undefined, afterSet), /Insufficient inventory/);
+  }
+  // Buying even 5 mL of one fragrance makes the set unavailable, and prevents carting both together.
+  const proton = rvltnVariants.find(v => v.sku === "RVLTN-PROTON-5ML")!;
+  const afterBottle = new Map([[proton.id, 1]]);
+  const view = rvltnVariants.map(v => availableVariant(v, afterBottle));
+  assert.equal(view.find(v => v.id === set.id)?.remainingInventory, 0);
+  await assert.rejects(() => priceCart([{ variantId: set.id, quantity: 1 }], undefined, afterBottle), /Insufficient inventory/);
+  const bothFresh = rvltnVariants.map(v => availableVariant(v, new Map()));
+  assert.equal(canAddCartLines([{ variantId: proton.id, quantity: 1 }], [{ variantId: set.id, quantity: 1 }], bothFresh), false);
+  assert.equal(canAddCartLines([], [{ variantId: set.id, quantity: 1 }], bothFresh), true);
+  assert.deepEqual(reconcileCart([{ variantId: proton.id, quantity: 1 }, { variantId: set.id, quantity: 1 }], bothFresh).map(l => l.variantId), [proton.id]);
 });

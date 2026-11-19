@@ -228,53 +228,85 @@ var rvltnOffers = [
   ...offer,
   productId: `84ac0000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`
 }));
-var rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
-  id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
-  productId: offer.productId,
-  sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
-  size: `${size} mL`,
-  concentration: "Fragrance decant",
-  price: rvltnPrices[slot],
-  // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
-  soldCount: 0,
-  isActive: true
-})));
+var quantumSlugs = ["green-monster-2", "electron", "neutron", "proton", "dark-matter"];
+var quantumSet = {
+  slug: "quantum-set",
+  productId: "84ac0000-0000-4000-8000-000000000999",
+  variantId: "84ac0000-0000-4000-8000-000000009991",
+  sku: "RVLTN-QUANTUM-SET",
+  name: "QUANTUM SERIES \u2014 COMPLETE SET",
+  price: "400.00",
+  imageUrl: "/assets/quantum/quantum-series.jpg",
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched."
+};
+var soldOutSlugs = /* @__PURE__ */ new Set(["sleep-paralysis", "green-monster", "duality", "prex2026"]);
+var rvltnVariants = [
+  ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
+    id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
+    productId: offer.productId,
+    sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
+    size: `${size} mL`,
+    concentration: "Fragrance decant",
+    price: rvltnPrices[slot],
+    // Backorders have an order limit, not a claim of physical inventory.
+    totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+    remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
+    soldCount: 0,
+    isActive: true
+  }))),
+  {
+    id: quantumSet.variantId,
+    productId: quantumSet.productId,
+    sku: quantumSet.sku,
+    size: "Complete set",
+    concentration: "5 \xD7 50 mL",
+    price: quantumSet.price,
+    totalInventory: 1,
+    remainingInventory: 1,
+    soldCount: 0,
+    isActive: true
+  }
+];
 function rvltnVariant(id) {
   return rvltnVariants.find((v) => v.id === id);
 }
+function offerOf(id) {
+  const variant = rvltnVariant(id);
+  return variant ? rvltnOffers.find((o) => o.productId === variant.productId) : void 0;
+}
 function isPreorderVariant(id) {
-  const variant = rvltnVariant(id);
-  return Boolean(variant && rvltnOffers.find((o) => o.productId === variant.productId)?.status === "backorder");
+  return offerOf(id)?.status === "backorder";
 }
-function limitedOffer(id) {
-  const variant = rvltnVariant(id);
-  const offer = variant && rvltnOffers.find((o) => o.productId === variant.productId);
-  return offer && offer.status === "limited" ? offer : void 0;
+function isSoldOutVariant(id) {
+  const offer = offerOf(id);
+  return Boolean(offer && soldOutSlugs.has(offer.slug));
 }
-function poolSize(id) {
-  return limitedOffer(id) ? parseInt(rvltnVariant(id).size, 10) : 0;
+function poolDemand(id) {
+  if (id === quantumSet.variantId)
+    return rvltnOffers.filter((o) => quantumSlugs.includes(o.slug)).map((o) => [o.productId, quantumStockMl]);
+  const offer = offerOf(id);
+  return offer && offer.status === "limited" ? [[offer.productId, parseInt(rvltnVariant(id).size, 10)]] : [];
 }
-function poolKey(id) {
-  return limitedOffer(id)?.productId;
+function poolLabel(key) {
+  return rvltnOffers.find((o) => o.productId === key)?.name ?? "this item";
 }
-function poolName(id) {
-  return limitedOffer(id)?.name ?? "this item";
-}
-function poolRemainingMl(id, unavailable) {
-  const offer = limitedOffer(id);
-  if (!offer) return 0;
-  const used = Array.from(unavailable).reduce((sum, [other, quantity]) => poolKey(other) === offer.productId ? sum + poolSize(other) * quantity : sum, 0);
-  return Math.max(0, (offer.stockMl ?? 0) - used);
+function poolRemaining(key, unavailable) {
+  const stock = rvltnOffers.find((o) => o.productId === key)?.stockMl ?? 0;
+  const used = Array.from(unavailable).reduce((sum, [id, quantity]) => {
+    const draw = poolDemand(id).find(([pool2]) => pool2 === key);
+    return draw ? sum + draw[1] * quantity : sum;
+  }, 0);
+  return Math.max(0, stock - used);
 }
 function availableVariant(variant, unavailable) {
-  const size = poolSize(variant.id);
+  const demand = poolDemand(variant.id);
+  const soldOut = isSoldOutVariant(variant.id);
+  const pooled = demand.length ? Math.min(...demand.map(([key, ml]) => Math.floor(poolRemaining(key, unavailable) / ml))) : 0;
   return {
     ...variant,
-    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(poolRemainingMl(variant.id, unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
-    ...size ? { sharedRemainingMl: poolRemainingMl(variant.id, unavailable) } : {},
-    isPreorder: isPreorderVariant(variant.id)
+    remainingInventory: soldOut ? 0 : isPreorderVariant(variant.id) ? 100 : demand.length ? pooled : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
+    ...demand.length === 1 ? { sharedRemainingMl: soldOut ? 0 : poolRemaining(demand[0][0], unavailable) } : {},
+    isPreorder: !soldOut && isPreorderVariant(variant.id)
   };
 }
 
@@ -347,6 +379,22 @@ var MemStorage = class {
         createdAt: /* @__PURE__ */ new Date()
       });
     }
+    this.products.set(quantumSet.productId, {
+      id: quantumSet.productId,
+      name: quantumSet.name,
+      description: quantumSet.description,
+      notes: "Limited availability \u2014 complete set",
+      topNotes: "",
+      middleNotes: "",
+      baseNotes: "",
+      imageUrl: quantumSet.imageUrl,
+      type: "Complete set",
+      bibleVerse: "",
+      verseReference: "",
+      isActive: true,
+      releaseDate: /* @__PURE__ */ new Date(),
+      createdAt: /* @__PURE__ */ new Date()
+    });
     for (const variant of rvltnVariants)
       this.productVariants.set(variant.id, { ...variant, createdAt: /* @__PURE__ */ new Date() });
     const fragrances = [
@@ -895,15 +943,10 @@ async function priceCart(items, promoCode, unavailable) {
   let subtotalCents = 0;
   const paid = unavailable ?? await getUnavailableQuantities();
   const requestedMl = /* @__PURE__ */ new Map();
-  for (const item of items) {
-    const key = poolKey(item.variantId);
-    if (!key) continue;
-    const entry = requestedMl.get(key) ?? { ml: 0, sample: item.variantId };
-    entry.ml += poolSize(item.variantId) * item.quantity;
-    requestedMl.set(key, entry);
-  }
-  for (const { ml, sample } of Array.from(requestedMl.values()))
-    if (ml > poolRemainingMl(sample, paid)) throw new Error(`Insufficient inventory: ${poolName(sample)} sizes share the remaining fragrance volume`);
+  for (const item of items)
+    for (const [key, ml] of poolDemand(item.variantId)) requestedMl.set(key, (requestedMl.get(key) ?? 0) + ml * item.quantity);
+  for (const [key, ml] of Array.from(requestedMl))
+    if (ml > poolRemaining(key, paid)) throw new Error(`Insufficient inventory: ${poolLabel(key)} sizes share the remaining fragrance volume`);
   for (const item of items) {
     const variant = await storage.getProductVariant(item.variantId);
     if (!variant || !variant.isActive) throw new Error("An item is no longer available");

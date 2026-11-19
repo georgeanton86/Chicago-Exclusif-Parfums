@@ -49,19 +49,51 @@ export const rvltnOffers = [
   ...offer, productId: `84ac0000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
 }));
 
-export const rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
-  id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
-  productId: offer.productId, sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
-  size: `${size} mL`, concentration: "Fragrance decant", price: rvltnPrices[slot],
-  // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
-  soldCount: 0, isActive: true,
-})));
+/** The Quantum Series fragrances. Each draws from its own mL pool. */
+export const quantumSlugs = ["green-monster-2", "electron", "neutron", "proton", "dark-matter"] as const;
+
+/** One 50 mL bottle of every Quantum fragrance, sold together. It uses the full pool of all five. */
+export const quantumSet = {
+  slug: "quantum-set",
+  productId: "84ac0000-0000-4000-8000-000000000999",
+  variantId: "84ac0000-0000-4000-8000-000000009991",
+  sku: "RVLTN-QUANTUM-SET",
+  name: "QUANTUM SERIES — COMPLETE SET",
+  price: "400.00",
+  imageUrl: "/assets/quantum/quantum-series.jpg",
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched.",
+};
+
+/** Earlier releases that have sold out. Their stock logic stays in place; this switch closes them to purchase. */
+export const soldOutSlugs = new Set<string>(["sleep-paralysis", "green-monster", "duality", "prex2026"]);
+
+export const rvltnVariants = [
+  ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
+    id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
+    productId: offer.productId, sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
+    size: `${size} mL`, concentration: "Fragrance decant", price: rvltnPrices[slot],
+    // Backorders have an order limit, not a claim of physical inventory.
+    totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+    remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
+    soldCount: 0, isActive: true,
+  }))),
+  {
+    id: quantumSet.variantId, productId: quantumSet.productId, sku: quantumSet.sku,
+    size: "Complete set", concentration: "5 × 50 mL", price: quantumSet.price,
+    totalInventory: 1, remainingInventory: 1, soldCount: 0, isActive: true,
+  },
+];
 export function rvltnVariant(id: string) { return rvltnVariants.find(v => v.id === id); }
-export function isPreorderVariant(id: string) {
+function offerOf(id: string) {
   const variant = rvltnVariant(id);
-  return Boolean(variant && rvltnOffers.find(o => o.productId === variant.productId)?.status === "backorder");
+  return variant ? rvltnOffers.find(o => o.productId === variant.productId) : undefined;
+}
+export function isPreorderVariant(id: string) {
+  return offerOf(id)?.status === "backorder";
+}
+export function isSoldOutVariant(id: string) {
+  const offer = offerOf(id);
+  return Boolean(offer && soldOutSlugs.has(offer.slug));
 }
 export function prexSize(id: string): number {
   const variant = rvltnVariant(id);
@@ -71,35 +103,54 @@ export function prexRemainingMl(unavailable: Map<string, number>): number {
   return Math.max(0, prexStockMl - Array.from(unavailable).reduce((sum, [id, quantity]) => sum + prexSize(id) * quantity, 0));
 }
 
-/** Limited releases (PREX2026 and each Quantum fragrance) sell from one mL pool shared by all of that product's sizes. */
-function limitedOffer(id: string) {
-  const variant = rvltnVariant(id);
-  const offer = variant && rvltnOffers.find(o => o.productId === variant.productId);
-  return offer && offer.status === "limited" ? offer : undefined;
+/**
+ * Limited releases (PREX2026 and each Quantum fragrance) sell from one mL pool shared by all of that
+ * product's sizes. The complete set draws 50 mL from every Quantum pool at once.
+ */
+export function poolDemand(id: string): Array<[string, number]> {
+  if (id === quantumSet.variantId)
+    return rvltnOffers.filter(o => (quantumSlugs as readonly string[]).includes(o.slug)).map(o => [o.productId, quantumStockMl]);
+  const offer = offerOf(id);
+  return offer && offer.status === "limited" ? [[offer.productId, parseInt(rvltnVariant(id)!.size, 10)]] : [];
 }
-/** Size in mL if the variant belongs to a limited release, otherwise 0. */
+/** Size in mL for a variant that draws from exactly one pool, otherwise 0. */
 export function poolSize(id: string): number {
-  return limitedOffer(id) ? parseInt(rvltnVariant(id)!.size, 10) : 0;
+  const demand = poolDemand(id);
+  return demand.length === 1 ? demand[0][1] : 0;
 }
-/** Identifies which pool a variant draws from (the product id), or undefined for non-limited variants. */
+/** The pool (product id) a single-pool variant draws from. */
 export function poolKey(id: string): string | undefined {
-  return limitedOffer(id)?.productId;
+  const demand = poolDemand(id);
+  return demand.length === 1 ? demand[0][0] : undefined;
+}
+export function poolLabel(key: string): string {
+  return rvltnOffers.find(o => o.productId === key)?.name ?? "this item";
 }
 export function poolName(id: string): string {
-  return limitedOffer(id)?.name ?? "this item";
+  const key = poolKey(id);
+  return key ? poolLabel(key) : "this item";
 }
+export function poolRemaining(key: string, unavailable: Map<string, number>): number {
+  const stock = rvltnOffers.find(o => o.productId === key)?.stockMl ?? 0;
+  const used = Array.from(unavailable).reduce((sum, [id, quantity]) => {
+    const draw = poolDemand(id).find(([pool]) => pool === key);
+    return draw ? sum + draw[1] * quantity : sum;
+  }, 0);
+  return Math.max(0, stock - used);
+}
+/** Remaining mL in the pool a variant draws from (the smallest pool, for the set). */
 export function poolRemainingMl(id: string, unavailable: Map<string, number>): number {
-  const offer = limitedOffer(id);
-  if (!offer) return 0;
-  const used = Array.from(unavailable).reduce((sum, [other, quantity]) => poolKey(other) === offer.productId ? sum + poolSize(other) * quantity : sum, 0);
-  return Math.max(0, (offer.stockMl ?? 0) - used);
+  const demand = poolDemand(id);
+  return demand.length ? Math.min(...demand.map(([key]) => poolRemaining(key, unavailable))) : 0;
 }
 export function availableVariant<T extends { id: string; remainingInventory: number }>(variant: T, unavailable: Map<string, number>) {
-  const size = poolSize(variant.id);
+  const demand = poolDemand(variant.id);
+  const soldOut = isSoldOutVariant(variant.id);
+  const pooled = demand.length ? Math.min(...demand.map(([key, ml]) => Math.floor(poolRemaining(key, unavailable) / ml))) : 0;
   return {
     ...variant,
-    remainingInventory: isPreorderVariant(variant.id) ? 100 : size ? Math.floor(poolRemainingMl(variant.id, unavailable) / size) : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
-    ...(size ? { sharedRemainingMl: poolRemainingMl(variant.id, unavailable) } : {}),
-    isPreorder: isPreorderVariant(variant.id),
+    remainingInventory: soldOut ? 0 : isPreorderVariant(variant.id) ? 100 : demand.length ? pooled : Math.max(0, variant.remainingInventory - (unavailable.get(variant.id) ?? 0)),
+    ...(demand.length === 1 ? { sharedRemainingMl: soldOut ? 0 : poolRemaining(demand[0][0], unavailable) } : {}),
+    isPreorder: !soldOut && isPreorderVariant(variant.id),
   };
 }

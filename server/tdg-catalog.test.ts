@@ -40,7 +40,7 @@ test("Archived TDG records retain stable IDs and prices without being purchasabl
 
 test("Dreamer remains visible and sold out alongside the new blends", async () => {
   const products = await storage.getAllProducts();
-  assert.equal(products.filter(p => p.isActive).length, 12);
+  assert.equal(products.filter(p => p.isActive).length, 13);
   assert.equal(products.filter(p => !p.isActive).length, 36);
   for (const offer of dreamerOffers)
     assert.equal((await storage.getProduct(offer.productId))?.isActive, true);

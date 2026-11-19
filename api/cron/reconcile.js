@@ -242,19 +242,43 @@ var rvltnOffers = [
   ...offer,
   productId: `84ac0000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`
 }));
-var rvltnVariants = rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
-  id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
-  productId: offer.productId,
-  sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
-  size: `${size} mL`,
-  concentration: "Fragrance decant",
-  price: rvltnPrices[slot],
-  // Backorders have an order limit, not a claim of physical inventory.
-  totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
-  remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
-  soldCount: 0,
-  isActive: true
-})));
+var quantumSet = {
+  slug: "quantum-set",
+  productId: "84ac0000-0000-4000-8000-000000000999",
+  variantId: "84ac0000-0000-4000-8000-000000009991",
+  sku: "RVLTN-QUANTUM-SET",
+  name: "QUANTUM SERIES \u2014 COMPLETE SET",
+  price: "400.00",
+  imageUrl: "/assets/quantum/quantum-series.jpg",
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched."
+};
+var rvltnVariants = [
+  ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
+    id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
+    productId: offer.productId,
+    sku: `RVLTN-${offer.slug.toUpperCase()}-${size}ML`,
+    size: `${size} mL`,
+    concentration: "Fragrance decant",
+    price: rvltnPrices[slot],
+    // Backorders have an order limit, not a claim of physical inventory.
+    totalInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 0,
+    remainingInventory: offer.status === "limited" ? Math.floor((offer.stockMl ?? 0) / size) : 100,
+    soldCount: 0,
+    isActive: true
+  }))),
+  {
+    id: quantumSet.variantId,
+    productId: quantumSet.productId,
+    sku: quantumSet.sku,
+    size: "Complete set",
+    concentration: "5 \xD7 50 mL",
+    price: quantumSet.price,
+    totalInventory: 1,
+    remainingInventory: 1,
+    soldCount: 0,
+    isActive: true
+  }
+];
 function rvltnVariant(id) {
   return rvltnVariants.find((v) => v.id === id);
 }
@@ -323,6 +347,22 @@ var MemStorage = class {
         createdAt: /* @__PURE__ */ new Date()
       });
     }
+    this.products.set(quantumSet.productId, {
+      id: quantumSet.productId,
+      name: quantumSet.name,
+      description: quantumSet.description,
+      notes: "Limited availability \u2014 complete set",
+      topNotes: "",
+      middleNotes: "",
+      baseNotes: "",
+      imageUrl: quantumSet.imageUrl,
+      type: "Complete set",
+      bibleVerse: "",
+      verseReference: "",
+      isActive: true,
+      releaseDate: /* @__PURE__ */ new Date(),
+      createdAt: /* @__PURE__ */ new Date()
+    });
     for (const variant of rvltnVariants)
       this.productVariants.set(variant.id, { ...variant, createdAt: /* @__PURE__ */ new Date() });
     const fragrances = [
