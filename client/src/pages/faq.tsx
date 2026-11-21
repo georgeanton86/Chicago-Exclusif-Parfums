@@ -5,10 +5,10 @@ import { Link } from "wouter";
 import { preorderTerms } from "@shared/rvltn";
 
 const questions = [
-  ["What is Chicago Exclusif Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. The Quantum Series is the current drop. Every earlier series has sold out, and the Dreamer Series remains in the archive."],
+  ["What is Chicago Exclusif Parfums?", "An independent fragrance house whose own blends and striking scent artwork invite exploration. Every series has sold out, including the Quantum Series, and the archive keeps the artwork."],
   ["What does backorder / paid waitlist mean?", preorderTerms],
-  ["Which blends have sold out?", "Dreamer, Sleep Paralysis, Green Monster, Duality and PREX2026 have all sold out and cannot be purchased."],
-  ["What is available now?", "Only the Quantum Series is available: Green Monster 2.0, Electron, Neutron, Proton and Dark Matter. Each has 50 mL in total, shared across its sizes, and the complete set of five 50 mL bottles is $400. Live availability is checked across your whole cart and again before payment."],
+  ["Which blends have sold out?", "Dreamer, Sleep Paralysis, Green Monster, Duality, PREX2026 and the Quantum Series have all sold out and cannot be purchased."],
+  ["What is available now?", "Nothing right now. Every series has sold out, including the Quantum Series. The next series is coming. Use code 25ORION for 25% off when it drops."],
   ["Will a mixed order ship separately?", "No. Your order ships together."],
   ["Which sizes and prices can I choose?", "5 mL is $22.50; 10 mL is $45; 20 mL is $85; 30 mL is $120. These are fragrance decants. The original artwork is displayed unchanged and does not promise the illustrated retail bottle packaging."],
   ["What does Duality smell like?", "Duality explores light and darkness. Its scent notes have not yet been published."],

@@ -32,16 +32,18 @@ function QuantumSet() {
   const [added, setAdded] = useState(false);
   const cart = useShoppingCart();
   const variant = cart.variants.data?.find(v => v.id === quantumSet.variantId);
-  const available = inventoryLimit(variant) > 0;
+  const soldOut = soldOutSlugs.has(quantumSet.slug);
+  const available = !soldOut && inventoryLimit(variant) > 0;
   return <article id={quantumSet.slug} className="archive-row">
     <div className="archive-art"><img src={quantumSet.imageUrl} alt="The Quantum Series complete set artwork" className="offer-art" style={{ aspectRatio: "auto", objectFit: "contain" }} loading="lazy" /></div>
     <div>
-      <p className="eyebrow text-primary">Chicago Exclusif / The latest drop — Complete set · Very limited</p>
+      <p className="eyebrow text-primary">Chicago Exclusif / Complete set · Sold out</p>
+      {soldOut && <span className="sold-label mt-4 inline-block">Sold out</span>}
       <h2 className="mt-5 font-serif text-5xl sm:text-6xl">The Quantum Series</h2>
       <p className="my-6 max-w-xl text-sm leading-7 text-muted-foreground">{quantumSet.description}</p>
-      <div className="mt-5 flex flex-wrap items-center gap-5"><span className="font-serif text-3xl">${Number(quantumSet.price).toFixed(0)}</span><button className="house-button" disabled={!available || cart.variants.isError || cart.products.isError || cart.products.isLoading} onClick={() => { if (cart.add(quantumSet.variantId, 1)) setAdded(true); }}>{cart.variants.isLoading ? "Checking availability…" : available ? "Add the complete set" : "Set unavailable"}</button></div>
+      <div className="mt-5 flex flex-wrap items-center gap-5"><span className="font-serif text-3xl">${Number(quantumSet.price).toFixed(0)}</span><button className="house-button" disabled={!available || cart.variants.isError || cart.products.isError || cart.products.isLoading} onClick={() => { if (cart.add(quantumSet.variantId, 1)) setAdded(true); }}>{soldOut ? "Sold out" : cart.variants.isLoading ? "Checking availability…" : available ? "Add the complete set" : "Set unavailable"}</button></div>
       <p role="status" className="mt-3 text-sm">{added ? "Added to your bag. Open Bag above to review." : cart.error}</p>
-      <div className="mt-5 border-l-2 border-primary pl-4 text-xs leading-6 text-muted-foreground">Five 50 mL bottles: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Only one set exists, and each fragrance can also be bought in smaller sizes below until its 50 mL is gone. Stock is checked again at checkout.</div>
+      <div className="mt-5 border-l-2 border-primary pl-4 text-xs leading-6 text-muted-foreground">{soldOut ? "The Quantum Series has sold out. Every bottle has been claimed." : "Five 50 mL bottles: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Stock is checked again at checkout."}</div>
     </div>
   </article>;
 }

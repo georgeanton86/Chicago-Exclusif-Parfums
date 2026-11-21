@@ -237,9 +237,9 @@ var quantumSet = {
   name: "QUANTUM SERIES \u2014 COMPLETE SET",
   price: "400.00",
   imageUrl: "/assets/quantum/lineup.jpg",
-  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched."
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0."
 };
-var soldOutSlugs = /* @__PURE__ */ new Set(["sleep-paralysis", "green-monster", "duality", "prex2026"]);
+var soldOutSlugs = /* @__PURE__ */ new Set(["sleep-paralysis", "green-monster", "duality", "prex2026", "green-monster-2", "electron", "neutron", "proton", "dark-matter", "quantum-set"]);
 var rvltnVariants = [
   ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
     id: `84ac0000-0000-4000-8000-${String((index + 1) * 100 + slot + 1).padStart(12, "0")}`,
@@ -278,6 +278,7 @@ function isPreorderVariant(id) {
   return offerOf(id)?.status === "backorder";
 }
 function isSoldOutVariant(id) {
+  if (id === quantumSet.variantId) return soldOutSlugs.has(quantumSet.slug);
   const offer = offerOf(id);
   return Boolean(offer && soldOutSlugs.has(offer.slug));
 }
@@ -772,7 +773,7 @@ var trialPromotionsEnabled = false;
 var minimumCardChargeCents = 50;
 function parsePromoCodes(value) {
   const codes = Array.from(new Set((value ?? "").toUpperCase().trim().split(/[\s,+]+/).filter(Boolean)));
-  const allowed = trialPromotionsEnabled ? ["WELCOME10", "10OFFNOW", "FREESHIP", "99OFF"] : ["WELCOME10", "10OFFNOW"];
+  const allowed = trialPromotionsEnabled ? ["WELCOME10", "10OFFNOW", "25ORION", "FREESHIP", "99OFF"] : ["WELCOME10", "10OFFNOW", "25ORION"];
   if (codes.some((code) => !allowed.includes(code))) throw new Error("Promo code is invalid or no longer available.");
   if (codes.filter((code) => code !== "FREESHIP").length > 1) {
     throw new Error("Use only one percentage discount code. Free shipping can be combined with it.");
@@ -781,7 +782,7 @@ function parsePromoCodes(value) {
 }
 function cartPricing(subtotalCents, setDiscountCents, promoCode) {
   const codes = parsePromoCodes(promoCode);
-  const discountPercent = codes.includes("99OFF") ? 99 : codes.includes("WELCOME10") || codes.includes("10OFFNOW") ? 10 : 0;
+  const discountPercent = codes.includes("99OFF") ? 99 : codes.includes("25ORION") ? 25 : codes.includes("WELCOME10") || codes.includes("10OFFNOW") ? 10 : 0;
   const merchandiseCents = Math.max(0, subtotalCents - setDiscountCents);
   const discountCents = Math.round(merchandiseCents * discountPercent / 100);
   const shippingCents = codes.includes("FREESHIP") ? 0 : shippingCentsForSubtotal(subtotalCents);

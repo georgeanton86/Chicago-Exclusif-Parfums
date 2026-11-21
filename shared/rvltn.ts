@@ -61,11 +61,11 @@ export const quantumSet = {
   name: "QUANTUM SERIES — COMPLETE SET",
   price: "400.00",
   imageUrl: "/assets/quantum/lineup.jpg",
-  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched.",
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0.",
 };
 
 /** Earlier releases that have sold out. Their stock logic stays in place; this switch closes them to purchase. */
-export const soldOutSlugs = new Set<string>(["sleep-paralysis", "green-monster", "duality", "prex2026"]);
+export const soldOutSlugs = new Set<string>(["sleep-paralysis", "green-monster", "duality", "prex2026", "green-monster-2", "electron", "neutron", "proton", "dark-matter", "quantum-set"]);
 
 export const rvltnVariants = [
   ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({
@@ -92,6 +92,7 @@ export function isPreorderVariant(id: string) {
   return offerOf(id)?.status === "backorder";
 }
 export function isSoldOutVariant(id: string) {
+  if (id === quantumSet.variantId) return soldOutSlugs.has(quantumSet.slug);
   const offer = offerOf(id);
   return Boolean(offer && soldOutSlugs.has(offer.slug));
 }

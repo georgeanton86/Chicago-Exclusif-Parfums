@@ -33,3 +33,11 @@ test("10OFFNOW takes 10% off, is case insensitive, and cannot stack with another
   assert.equal(cartPricing(4000, 0, "10OFFNOW").totalCents, 3600 + 899);
   assert.throws(() => parsePromoCodes("WELCOME10 10OFFNOW"), /only one percentage/);
 });
+
+test("25ORION takes 25% off, is case insensitive, and cannot stack with another percentage code", () => {
+  assert.deepEqual(parsePromoCodes(" 25orion "), ["25ORION"]);
+  assert.equal(cartPricing(10000, 0, "25ORION").discountCents, 2500);
+  assert.equal(cartPricing(10000, 0, "25ORION").totalCents, 7500);
+  assert.equal(cartPricing(4000, 0, "25ORION").totalCents, 3000 + 899);
+  assert.throws(() => parsePromoCodes("25ORION 10OFFNOW"), /only one percentage/);
+});

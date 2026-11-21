@@ -24,7 +24,7 @@ export default function Policy() {
                 <div className="border-y border-border py-6">
                   <h3 className="mb-3 font-semibold text-lg">BACKORDERS / PAID WAITLIST</h3>
                   <p>{preorderTerms}</p>
-                  <p className="mt-3">Every earlier series, including Dreamer, Sleep Paralysis, Green Monster, Duality and PREX2026, has sold out and cannot be purchased. Each Quantum Series fragrance is an available-stock limited release of 50 mL, shared across its sizes, and the complete set is five 50 mL bottles for $400. Orders ship together.</p>
+                  <p className="mt-3">Every series, including Dreamer, Sleep Paralysis, Green Monster, Duality, PREX2026 and the Quantum Series, has sold out and cannot be purchased. Orders ship together.</p>
                   <p className="mt-3">Sizes are 5, 10, 20 and 30 mL decants. Fragrance artwork is displayed unchanged and does not represent the decant bottle supplied. Dreamer remains a sold-out archive.</p>
                   <p className="mt-3 font-semibold">Nothing in these terms limits refunds, cancellation rights or other remedies required by applicable law.</p>
                 </div>

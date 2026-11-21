@@ -250,7 +250,7 @@ var quantumSet = {
   name: "QUANTUM SERIES \u2014 COMPLETE SET",
   price: "400.00",
   imageUrl: "/assets/quantum/lineup.jpg",
-  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0. Available only while all five fragrances are untouched."
+  description: "One 50 mL bottle of each: Proton, Neutron, Electron, Dark Matter and Green Monster 2.0."
 };
 var rvltnVariants = [
   ...rvltnOffers.flatMap((offer, index) => rvltnSizes.map((size, slot) => ({

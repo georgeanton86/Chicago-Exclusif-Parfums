@@ -155,12 +155,13 @@ test("each Quantum fragrance sells from its own 50 mL pool shared across sizes",
   assert.equal(canAddCartLines([], [{ variantId: sizesOf(first.productId)[3].id, quantity: 2 }], fresh), false);
 });
 
-test("earlier releases are sold out by default and cannot be bought; the Quantum Series stays open", async () => {
+test("every release, including the Quantum Series and the complete set, is sold out by default and cannot be bought", async () => {
   soldOutSlugs.clear();
   for (const slug of closedSlugs) soldOutSlugs.add(slug);
   try {
-    assert.deepEqual([...closedSlugs].sort(), ["duality", "green-monster", "prex2026", "sleep-paralysis"]);
+    assert.deepEqual([...closedSlugs].sort(), ["dark-matter", "duality", "electron", "green-monster", "green-monster-2", "neutron", "prex2026", "proton", "quantum-set", "sleep-paralysis"]);
     for (const slug of closedSlugs) {
+      if (slug === quantumSet.slug) continue; // the complete set is checked separately below
       const offer = rvltnOffers.find(o => o.slug === slug)!;
       for (const variant of rvltnVariants.filter(v => v.productId === offer.productId)) {
         const view = availableVariant(variant, new Map());
@@ -169,9 +170,10 @@ test("earlier releases are sold out by default and cannot be bought; the Quantum
         await assert.rejects(() => priceCart([{ variantId: variant.id, quantity: 1 }], undefined, new Map()), /Insufficient inventory/);
       }
     }
-    const electron = rvltnVariants.find(v => v.sku === "RVLTN-ELECTRON-5ML")!;
-    assert.equal(availableVariant(electron, new Map()).remainingInventory, 10);
-    assert.ok(await priceCart([{ variantId: electron.id, quantity: 1 }], undefined, new Map()) > 0);
+    // The Quantum Series has sold out too, including the $400 complete set.
+    const set = rvltnVariants.find(v => v.id === quantumSet.variantId)!;
+    assert.equal(availableVariant(set, new Map()).remainingInventory, 0);
+    await assert.rejects(() => priceCart([{ variantId: set.id, quantity: 1 }], undefined, new Map()), /Insufficient inventory/);
   } finally {
     soldOutSlugs.clear();
   }
