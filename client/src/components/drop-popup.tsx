@@ -31,7 +31,7 @@ export default function DropPopup() {
     <DialogContent className="max-w-md border-border bg-background text-center">
       <DialogHeader className="items-center text-center sm:text-center">
         <p className="eyebrow text-primary">The Quantum Series sold out in 72 hours</p>
-        <DialogTitle className="mt-3 font-serif text-4xl font-normal leading-tight">The next series drops {nextDropLabel}.</DialogTitle>
+        <DialogTitle className="mt-3 font-serif text-4xl font-normal leading-tight">The Constellation Series drops {nextDropLabel}.</DialogTitle>
         <DialogDescription className="mt-3 text-sm leading-7 text-muted-foreground">
           Rarely does a series last long enough to buy. Be ready, and use this code for an exclusive 25% off when it drops.
         </DialogDescription>
