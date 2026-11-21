@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { nextDropLabel } from "@shared/rvltn";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// Bump the key to show the pop-up again to everyone who already closed it.
-const seenKey = "cep-next-series-popup-v1";
+// Shown once per visit (browser session), so returning visitors see the code again.
+const seenKey = "cep-next-series-popup-v2";
 export const nextSeriesCode = "25ORION";
 
 export default function DropPopup() {
@@ -12,7 +12,7 @@ export default function DropPopup() {
 
   useEffect(() => {
     let seen = false;
-    try { seen = localStorage.getItem(seenKey) === "1"; } catch { /* storage may be blocked */ }
+    try { seen = sessionStorage.getItem(seenKey) === "1"; } catch { /* storage may be blocked */ }
     if (seen) return;
     const timer = window.setTimeout(() => setOpen(true), 1200);
     return () => window.clearTimeout(timer);
@@ -20,7 +20,7 @@ export default function DropPopup() {
 
   const close = (next: boolean) => {
     setOpen(next);
-    if (!next) { try { localStorage.setItem(seenKey, "1"); } catch { /* ignore */ } }
+    if (!next) { try { sessionStorage.setItem(seenKey, "1"); } catch { /* ignore */ } }
   };
   const copy = async () => {
     try { await navigator.clipboard.writeText(nextSeriesCode); setCopied(true); } catch { setCopied(false); }
