@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { nextDropLabel } from "@shared/rvltn";
+import Countdown from "@/components/countdown";
+import { nextDropAt, nextDropLabel } from "@shared/rvltn";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Shown once per visit (browser session), so returning visitors see the code again.
@@ -35,6 +36,7 @@ export default function DropPopup() {
           Rarely does a series last long enough to buy. Be ready, and use this code for an exclusive 25% off when it drops.
         </DialogDescription>
       </DialogHeader>
+      <Countdown target={nextDropAt} doneLabel="The next series is dropping now." compact />
       <div className="my-2 border border-primary px-6 py-5">
         <p className="eyebrow !text-[9px]">Your exclusive code</p>
         <p className="mt-2 font-serif text-5xl tracking-[.12em] text-primary" aria-label="Discount code 25 ORION">{nextSeriesCode}</p>
