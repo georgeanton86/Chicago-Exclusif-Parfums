@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { nextDropLabel } from "@shared/rvltn";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Bump the key to show the pop-up again to everyone who already closed it.
@@ -29,9 +30,9 @@ export default function DropPopup() {
     <DialogContent className="max-w-md border-border bg-background text-center">
       <DialogHeader className="items-center text-center sm:text-center">
         <p className="eyebrow text-primary">The Quantum Series sold out in 72 hours</p>
-        <DialogTitle className="mt-3 font-serif text-4xl font-normal leading-tight">The next series is coming.</DialogTitle>
+        <DialogTitle className="mt-3 font-serif text-4xl font-normal leading-tight">The next series drops {nextDropLabel}.</DialogTitle>
         <DialogDescription className="mt-3 text-sm leading-7 text-muted-foreground">
-          When it’s done, it’s done. Use this code for an exclusive 25% off the next series when it drops.
+          Rarely does a series last long enough to buy. Be ready, and use this code for an exclusive 25% off when it drops.
         </DialogDescription>
       </DialogHeader>
       <div className="my-2 border border-primary px-6 py-5">

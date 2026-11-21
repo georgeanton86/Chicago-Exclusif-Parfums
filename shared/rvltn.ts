@@ -2,6 +2,9 @@ export const rvltnSizes = [5, 10, 20, 30] as const;
 export const rvltnPrices = ["22.50", "45.00", "85.00", "120.00"] as const;
 export const prexStockMl = 500;
 export const quantumStockMl = 50;
+/** When the next series drops: midnight Central (CST, UTC-6) on January 1, 2027. */
+export const nextDropAt = "2027-01-01T00:00:00-06:00";
+export const nextDropLabel = "January 1, 2027";
 export const preorderTermsVersion = "rvltn-preorder-2026-11";
 export const preorderTerms = "Backorder / paid waitlist: the full price is charged now. There is no confirmed restock or shipping date. Orders are nonrefundable except where required by law. This is not a ready-to-ship purchase.";
 export const rvltnOffers = [
