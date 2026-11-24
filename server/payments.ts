@@ -44,6 +44,14 @@ async function quantities(query: Pool | PoolClient, includePending: boolean, che
   return new Map(result.rows.map(row => [row.variant_id, row.sold]));
 }
 
+/** Paid orders, newest first, for the private orders page. */
+export async function listPaidOrders(limit = 500) {
+  const result = await pool.query(
+    `SELECT id, payment_intent_id, amount_cents, currency, customer_email, customer_name, items, shipping, created_at
+     FROM payment_orders ORDER BY created_at DESC LIMIT $1`, [limit]);
+  return result.rows;
+}
+
 export async function getPaidQuantities(): Promise<Map<string, number>> {
   return quantities(pool, false);
 }

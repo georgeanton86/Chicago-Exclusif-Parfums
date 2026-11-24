@@ -8,6 +8,7 @@ import Shop from "@/pages/shop";
 import StripeCheckout from "@/pages/stripe-checkout";
 import Policy from "@/pages/policy";
 import FAQ from "@/pages/faq";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/checkout" component={StripeCheckout} />
       <Route path="/policy" component={Policy} />
       <Route path="/faq" component={FAQ} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -6,7 +6,7 @@ import path from "path";
 
 // server/routes.ts
 import { createServer } from "http";
-import { createHash } from "crypto";
+import { createHash as createHash2 } from "crypto";
 
 // server/storage.ts
 import { randomUUID } from "crypto";
@@ -830,6 +830,14 @@ async function quantities(query, includePending, checkoutKey) {
   );
   return new Map(result.rows.map((row) => [row.variant_id, row.sold]));
 }
+async function listPaidOrders(limit = 500) {
+  const result = await pool.query(
+    `SELECT id, payment_intent_id, amount_cents, currency, customer_email, customer_name, items, shipping, created_at
+     FROM payment_orders ORDER BY created_at DESC LIMIT $1`,
+    [limit]
+  );
+  return result.rows;
+}
 async function getPaidQuantities() {
   return quantities(pool, false);
 }
@@ -1020,6 +1028,107 @@ async function recordPaidOrderLocked(client, intent) {
   return result.rows[0];
 }
 
+// server/admin.ts
+import { createHash, timingSafeEqual } from "crypto";
+var sha = (value) => createHash("sha256").update(value).digest();
+function checkAdminPassword(supplied, expected) {
+  if (!expected) return "disabled";
+  if (typeof supplied !== "string" || !supplied) return "wrong";
+  return timingSafeEqual(sha(supplied), sha(expected)) ? "ok" : "wrong";
+}
+function mlOf(size) {
+  const match = /^(\d+(?:\.\d+)?)\s*mL/i.exec(size);
+  return match ? Number(match[1]) : 0;
+}
+async function summarizeOrders(rows) {
+  const byProduct = /* @__PURE__ */ new Map();
+  const bump = (name, ml, units) => {
+    const entry = byProduct.get(name) ?? { name, ml: 0, units: 0 };
+    entry.ml += ml;
+    entry.units += units;
+    byProduct.set(name, entry);
+  };
+  let grossCents = 0;
+  let mlSold = 0;
+  const orders = [];
+  for (const row of rows) {
+    const rawItems = Array.isArray(row.items) ? row.items : [];
+    const items = [];
+    for (const item of rawItems) {
+      const variant = await storage.getProductVariant(item.variantId);
+      const product = variant ? await storage.getProduct(variant.productId) : void 0;
+      const name = product?.name ?? "Unknown item";
+      const size = variant ? `${variant.size}${variant.concentration && variant.size === "Complete set" ? ` ${variant.concentration}` : ""}` : "";
+      if (item.variantId === quantumSet.variantId) {
+        for (const slug of quantumSlugs) {
+          const offer = rvltnOffers.find((o) => o.slug === slug);
+          if (offer) bump(offer.name, quantumStockMl * item.quantity, item.quantity);
+        }
+        mlSold += quantumStockMl * quantumSlugs.length * item.quantity;
+      } else if (variant) {
+        const ml = mlOf(variant.size) * item.quantity;
+        bump(name, ml, item.quantity);
+        mlSold += ml;
+      }
+      items.push({ name, size, quantity: item.quantity, backorder: item.fulfillment === "backorder" });
+    }
+    grossCents += Number(row.amount_cents);
+    orders.push({
+      id: row.id,
+      paymentIntentId: row.payment_intent_id,
+      createdAt: new Date(row.created_at).toISOString(),
+      amountCents: Number(row.amount_cents),
+      currency: row.currency,
+      customerName: row.customer_name,
+      customerEmail: row.customer_email,
+      shipping: row.shipping,
+      items
+    });
+  }
+  return {
+    orders,
+    totals: {
+      orders: rows.length,
+      grossCents,
+      mlSold,
+      byProduct: Array.from(byProduct.values()).sort((a, b) => b.ml - a.ml)
+    }
+  };
+}
+var failures = /* @__PURE__ */ new Map();
+function throttled(ip) {
+  const entry = failures.get(ip);
+  if (!entry) return false;
+  if (Date.now() - entry.first > 15 * 6e4) {
+    failures.delete(ip);
+    return false;
+  }
+  return entry.count >= 8;
+}
+function registerAdminRoutes(app2) {
+  app2.get("/api/admin/orders", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const ip = req.ip || "unknown";
+    if (throttled(ip)) return res.status(429).json({ message: "Too many attempts. Try again in a few minutes." });
+    const verdict = checkAdminPassword(req.get("x-admin-password"), process.env.ADMIN_PASSWORD);
+    if (verdict === "disabled") return res.status(503).json({ message: "The orders page is not set up yet. Add ADMIN_PASSWORD in Vercel." });
+    if (verdict === "wrong") {
+      const entry = failures.get(ip) ?? { count: 0, first: Date.now() };
+      entry.count += 1;
+      failures.set(ip, entry);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return res.status(401).json({ message: "Wrong password." });
+    }
+    failures.delete(ip);
+    try {
+      res.json(await summarizeOrders(await listPaidOrders()));
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+      res.status(500).json({ message: "Could not load orders." });
+    }
+  });
+}
+
 // server/routes.ts
 var checkoutSchema = z.object({
   checkoutKey: z.string().uuid(),
@@ -1046,6 +1155,7 @@ var checkoutSchema = z.object({
   })
 });
 async function registerRoutes(app2) {
+  registerAdminRoutes(app2);
   app2.get("/api/products", async (req, res) => {
     try {
       const allProducts = (await storage.getAllProducts()).filter((product) => product.isActive);
@@ -1160,7 +1270,7 @@ async function registerRoutes(app2) {
       await priceCart(items, promoCode ?? void 0, /* @__PURE__ */ new Map());
       const stripe = await getStripeClient();
       const hasDecants = items.some((item) => isChicagoVariant(item.variantId));
-      const requestHash = createHash("sha256").update(JSON.stringify(parsed.data)).digest("hex");
+      const requestHash = createHash2("sha256").update(JSON.stringify(parsed.data)).digest("hex");
       const checkout = hasDecants ? await reserveChicagoCheckout(items, promoCode ?? void 0, stripe, checkoutKey, requestHash) : void 0;
       const amount = checkout?.amount ?? await priceCart(items, promoCode ?? void 0);
       const reservationId = checkout?.reservationId;

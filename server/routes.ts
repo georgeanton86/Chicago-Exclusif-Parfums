@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getStripeClient, getStripePublishableKey } from "./stripeClient";
 import { CheckoutConflict, getOrCreateChicagoIntent, getPaidQuantities, getUnavailableQuantities, priceCart,
   recordPaidOrder, reserveChicagoCheckout } from "./payments";
+import { registerAdminRoutes } from "./admin";
 import { isChicagoVariant } from "@shared/chicago";
 import { parsePromoCodes } from "@shared/promotions";
 import { availableVariant, isPreorderVariant, preorderTerms, preorderTermsVersion } from "@shared/rvltn";
@@ -36,6 +37,7 @@ const checkoutSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  registerAdminRoutes(app);
   
   // Get all products (base fragrances)
   app.get("/api/products", async (req, res) => {
